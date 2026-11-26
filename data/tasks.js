@@ -58,11 +58,7 @@ window.EXAMS = {
           },
           {
             id: "english", icon: "🌍", color: "ic-oli", title: "Ағылшын тілі",
-            questions: [
-              { q: "«Алма» ағылшынша қалай болады?", options: ["orange", "apple", "pear", "grape"], answer: 1, explain: "Алма — apple." },
-              { q: "She ___ to school every day.", options: ["go", "goes", "going", "gone"], answer: 1, explain: "Present Simple, 3-жақ жекеше: she goes." },
-              { q: "«Go» етістігінің өткен шақ (Past Simple) түрі?", options: ["goed", "gone", "went", "going"], answer: 2, explain: "Go — went — gone (бұрыс етістік)." }
-            ]
+            questions: [], tests: [] // тесттер төменде қосылады
           }
         ]
       },
@@ -111,11 +107,7 @@ window.EXAMS = {
           },
           {
             id: "english", icon: "🌍", color: "ic-oli", title: "Английский язык",
-            questions: [
-              { q: "Как будет «собака» по-английски?", options: ["cat", "dog", "bird", "horse"], answer: 1, explain: "Собака — dog." },
-              { q: "I ___ a student.", options: ["is", "are", "am", "be"], answer: 2, explain: "С местоимением I используется am." },
-              { q: "Множественное число слова «child»?", options: ["childs", "childes", "children", "childrens"], answer: 2, explain: "Child — children (исключение)." }
-            ]
+            questions: [], tests: [] // тесттер төменде қосылады
           }
         ]
       }
@@ -203,18 +195,6 @@ window.EXAMS = {
     Q("«Ёлка» сөзінде неше әріп бар?", ["3", "4", "5", "6"], "4", "Ё-л-к-а: 4 әріп."),
   ]);
 
-  add("nis", "kz", "english", [
-    Q("They ___ football yesterday.", ["play", "plays", "played", "playing"], "played", "«Yesterday» – Past Simple: played."),
-    Q("«Кітап» ағылшынша қалай болады?", ["pen", "book", "desk", "bag"], "book", "Кітап – book."),
-    Q("I saw ___ elephant at the zoo.", ["a", "an", "some", "—"], "an", "Дауысты дыбыстан басталатын сөздің алдында «an» қолданылады."),
-    Q("«Good» сын есімінің салыстырмалы шырайы (comparative)?", ["gooder", "more good", "better", "best"], "better", "Good – better – best (бұрыс сын есім)."),
-    Q("There ___ three apples on the table.", ["is", "are", "am", "be"], "are", "Көпше түрдегі зат есіммен «there are» қолданылады."),
-    Q("«Cheap» сөзінің антонимі?", ["expensive", "small", "new", "easy"], "expensive", "Cheap (арзан) – expensive (қымбат)."),
-    Q("What time ___ you get up?", ["does", "do", "are", "is"], "do", "Present Simple сұрағы, «you» есімдігімен «do» қолданылады."),
-    Q("«Mouse» сөзінің көпше түрі?", ["mouses", "mice", "mices", "mouse"], "mice", "Mouse – mice (ерекше көпше түр)."),
-    Q("I have lived here ___ 2020.", ["for", "since", "from", "at"], "since", "Нақты уақыт нүктесінен бері: «since 2020»."),
-    Q("If it rains, we ___ at home.", ["stay will", "stayed", "will stay", "staying"], "will stay", "First Conditional: If + Present Simple, will + етістік."),
-  ]);
 
   /* ---------- НИШ · Орысша ағын ---------- */
   add("nis", "ru", "kazakh", [
@@ -243,18 +223,6 @@ window.EXAMS = {
     Q("Какой частью речи является слово «пятый»?", ["прилагательное", "числительное", "наречие", "существительное"], "числительное", "«Пятый» – порядковое числительное."),
   ]);
 
-  add("nis", "ru", "english", [
-    Q("Как будет «книга» по-английски?", ["pen", "book", "desk", "bag"], "book", "Книга – book."),
-    Q("We ___ to the cinema last Sunday.", ["go", "goes", "went", "gone"], "went", "«Last Sunday» – Past Simple: went."),
-    Q("He ___ English every day.", ["study", "studies", "studying", "studied"], "studies", "Present Simple, 3-е лицо: studies (y → ies)."),
-    Q("Превосходная степень прилагательного «big»?", ["the bigger", "the most big", "the biggest", "the bigest"], "the biggest", "Big – bigger – the biggest (согласная удваивается)."),
-    Q("How ___ apples do you need?", ["much", "many", "lot", "any"], "many", "Apples – исчисляемое существительное: how many."),
-    Q("Антоним к слову «early»?", ["late", "fast", "soon", "slow"], "late", "Early (рано) – late (поздно)."),
-    Q("She is good ___ maths.", ["in", "on", "at", "for"], "at", "Устойчивое выражение: be good at something."),
-    Q("Как сказать «Мне 12 лет»?", ["I have 12 years.", "I am 12 years old.", "My age 12 years.", "I'm 12 year."], "I am 12 years old.", "Возраст в английском передаётся через to be: I am 12 years old."),
-    Q("Look! It ___.", ["rains", "is raining", "rained", "rain"], "is raining", "«Look!» – действие происходит сейчас: Present Continuous."),
-    Q("Множественное число слова «tooth»?", ["tooths", "teeth", "teeths", "toothes"], "teeth", "Tooth – teeth (исключение)."),
-  ]);
 
   /* ---------- БИЛ · Қазақ тілі ---------- */
   add("bil", "kz", "kazakh", [
@@ -283,46 +251,6 @@ window.EXAMS = {
 (function () {
   function W(en, kz, ru) { return { en, kz, ru }; }
   window.W = W;
-  const subj = (stream) => window.EXAMS.nis.streams[stream].subjects.find((s) => s.id === "english");
-
-  // 2-тест: грамматика және сөздік (өзіміз құрастырған сұрақтар)
-  const kzWords = [
-    [W("apple", "алма", "яблоко")],
-    [W("every day", "күн сайын", "каждый день")],
-    [W("past tense", "өткен шақ", "прошедшее время")],
-    [W("yesterday", "кеше", "вчера")],
-    [W("book", "кітап", "книга")],
-    [W("elephant", "піл", "слон"), W("zoo", "хайуанаттар бағы", "зоопарк")],
-    [W("comparative", "салыстырмалы шырай", "сравнительная степень")],
-    [W("table", "үстел", "стол")],
-    [W("cheap", "арзан", "дешёвый"), W("expensive", "қымбат", "дорогой")],
-    [W("get up", "ұйқыдан тұру", "вставать")],
-    [W("mouse / mice", "тышқан / тышқандар", "мышь / мыши")],
-    [W("since", "...бері", "с (какого-то времени)"), W("live", "тұру, өмір сүру", "жить")],
-    [W("rain", "жаңбыр жауу", "идти (о дожде)"), W("stay at home", "үйде қалу", "оставаться дома")],
-  ];
-  const ruWords = [
-    [W("dog", "ит", "собака")],
-    [W("student", "оқушы, студент", "ученик, студент")],
-    [W("child / children", "бала / балалар", "ребёнок / дети")],
-    [W("book", "кітап", "книга")],
-    [W("last Sunday", "өткен жексенбі", "в прошлое воскресенье"), W("cinema", "кинотеатр", "кинотеатр")],
-    [W("study", "оқу, үйрену", "учиться, изучать")],
-    [W("superlative", "күшейтпелі шырай", "превосходная степень")],
-    [W("need", "керек болу", "нуждаться, нужно")],
-    [W("early", "ерте", "рано"), W("late", "кеш", "поздно")],
-    [W("be good at", "...ны жақсы меңгеру", "хорошо разбираться в")],
-    [W("years old", "жаста", "лет (о возрасте)")],
-    [W("look", "қара", "смотри")],
-    [W("tooth / teeth", "тіс / тістер", "зуб / зубы")],
-  ];
-  [["kz", kzWords], ["ru", ruWords]].forEach(([stream, words]) => {
-    const s = subj(stream);
-    s.questions.forEach((q, i) => { q.words = words[i] || []; });
-    s.tests = [
-      { id: "2", title: stream === "ru" ? "Тест 2" : "2-тест", subtitle: stream === "ru" ? "Грамматика и лексика" : "Грамматика және сөздік", questions: s.questions },
-    ];
-  });
 })();
 
 /*
@@ -440,9 +368,124 @@ window.EXAMS = {
 
   ["kz", "ru"].forEach((stream) => {
     const s = window.EXAMS.nis.streams[stream].subjects.find((x) => x.id === "english");
-    s.tests.unshift({
+    s.tests.push({
       id: "1", title: stream === "ru" ? "Тест 1" : "1-тест", subtitle: stream === "ru" ? "Работа с текстом · 40 минут" : "Мәтінмен жұмыс · 40 минут", fixedOrder: true,
       source: "«Сборник тестов в НИШ. Английский язык», TEST 1",
+      vocab: VOCAB, passages: PASSAGES,
+      questions: QUESTIONS.map((q) => Object.assign({}, q)),
+    });
+  });
+})();
+
+/*
+ * ============ Ағылшын тілі · 2-тест ============
+ * Дереккөз: «Сборник тестов в НИШ. Английский язык», TEST 2 (мәтіндер мен сұрақтар өзгертусіз).
+ * Суретпен берілген хабарландырулар мен жарнамалар мәтінмен жазылды. Жауаптар кітаптың жауап кестесі бойынша.
+ */
+(function () {
+  const W = window.W;
+  const VOCAB = [
+    W("Repair", "Жөндеу жұмыстары", "Ремонт"),
+    W("Purpose", "Мақсат", "Цель"),
+    W("To predict", "Болжау", "Прогнозировать"),
+    W("Successful business", "Сәтті бизнес", "Успешный бизнес"),
+    W("Intensive", "Интенсивті, күшейтілген", "Интенсивный, усиленный"),
+    W("Refrigerator", "Тоңазытқыш", "Холодильник"),
+    W("Staff", "Қызметкер", "Сотрудник"),
+    W("Weather report", "Ауа райы болжамы", "Прогноз погоды"),
+    W("To introduce", "Таныстыру", "Представлять"),
+    W("Rapidly", "Өте жылдам", "Быстро"),
+  ];
+
+  const PASSAGES = {
+    sms: { kind: "message", title: "Message 1", text: "Peter,\nWe’re outside the cinema. Text if you’re going to be late and we’ll wait and watch the next film. If you’re not coming, we’ll go in now.\nStefan" },
+    trip: { kind: "notice", text: "PUPILS SHOULD BRING MONEY FOR THE SCHOOL TRIP BY FRIDAY AT THE LATEST" },
+    ads: { title: "In which picture can you find what you are looking for?", text:
+      "A) INSTITUT FRANCAIS DES ALPES — FRENCH COURSES & SKIING MEGEVE\n• Morning: French, all levels\n• Afternoon: Skiing, all levels\n• 1 to 12 week courses\n• For adults from Dec 29th\n• All in one place and all included: Full board - Small classes - Ski-pass Mont-Blanc (680 km of ski-runs) + Ski insurance\nI.F.A. - B.P.15 - F.34660 COURNONTERRAL. Tel: +33 (4) 67 78 36 42. Fax: +33 (4) 67 78 36 47 (London Language Show Stand 62)\n\n" +
+      "B) THE BRITISH INSTITUTE OF FLORENCE — ITALIAN and ART HISTORY\n• Regular short courses\n• Pre-university courses\n• Easter revision courses\n• One year ‘A’ Levels\n• Gap year packages\n• Summer with opera\nTel: +39 55 284031. Fax: +39 55 289557. Lungarno Guicciardini 9, 50125 Firenze, Italy\n\n" +
+      "C) CAVILAM — French in France!\n• Open all year round\n• From 1 week up to 9 months\n• All levels\n• 110 nationalities\n• Intensive and mini-group courses\n• Examination centre\nCAVILAM, BP 2678/EU, 03206 Vichy - France. Fax: +33.4.70 97 99 80. Tel: +33.4.70 97 99 80\n\n" +
+      "D) EUROTERM\nEuroterm Translations Ltd. is an internationally operating translation organisation which is capable of handling over 250 translation combinations, and specialised in legal, financial, medical, technical and commercial texts. We are offering you the possibility of becoming an agent and/or freelance translator in our network.\nIf you are interested, please call +31 30-XXXXXX for further information or write to the following address: Euroterm Translations Ltd. Herenstraat 23, 3512 KB Utrecht, The Netherlands." },
+    bike: { kind: "notice", text: "Take bicycles for repair to side entrance of shop.\nFront entrance for sales only." },
+    fridge: { kind: "notice", text: "AFTER OPENING, KEEP IT IN A REFRIGERATOR AND USE WITHIN TWO DAYS" },
+    weather: { title: "", text: "Good morning, this is Anita Pierce with your Monday weather report. We couldn't ask for a better day for the first day of Spring. Right now it's fifteen degrees and clear. We're expecting blue skies throughout the day. Though there is only a ten percent chance of showers, this good weather can't last forever. It's raining cats and dogs up north, so we should see rain by morning. Don't forget your umbrella tomorrow. Now, stay tuned for local news." },
+    janet: { kind: "message", title: "MESSAGE", text: "To: Lisa\nFrom: Janet\nLisa,\nHave you done your homework?\nI left my book at school! Can I use yours?" },
+    bodyshop: { title: "The Body Shop", text:
+      "When I opened the first 'Body Shop' in 1976 my only object was to earn enough to feed my children. Today 'The Body Shop' is an international company rapidly growing all around the world. In the years since we began I have learned a lot. Much of what I have learned will be found in this book, for I believe that we, as a company, have something worth saying about how to run a successful business without giving up what we really believe in.\n\n" +
+      "It's not a normal business book, nor is it just about my life. The message is that to succeed in business you have to be different. Business can be fun, a business can be run with love and it can do good. In business, as in life, I need to enjoy myself, to have a feeling of family and to feel excited by the unexpected. I have always wanted the people who work for 'The Body Shop' to feel the same way." },
+    norwich: { title: "Norwich", text: "Norwich, the capital of the part of Britain known as East Anglia, has existed as a place to live for more than two thousand years. It began as a small *village* beside the River Wensum." },
+    poison: { title: "", text: "At least 100 children and staff are thought to be suffering from food poisoning after a Christmas meal. A third of all pupils - aged between nine and 13 – and 10 teachers were stuck down after eating a turkey lunch on Wednesday. Nobody is thought to have been hospitalized." },
+    swim: { kind: "notice", text: "The summer swimming timetable has changed. Please ask at reception for details." },
+  };
+
+  // answer: кітаптың жауап кестесі, TEST 2 бағаны (A=0, B=1, C=2, D=3)
+  const QUESTIONS = [
+    { passage: "sms", q: "What should Peter do?", options: ["let Stefan know if he is delayed", "tell Stefan which film he wants to watch", "wait for Stefan inside the cinema"], answer: 0,
+      explain: "“Text if you’re going to be late” = let Stefan know if he is delayed.",
+      words: [W("text", "SMS жазу", "написать сообщение"), W("be late / delayed", "кешігу", "опаздывать, задерживаться"), W("outside", "сыртында", "снаружи, у входа")] },
+    { passage: "trip", q: "What does it say?", options: ["Pupils are late paying for the school trip on Friday.", "Pupils have until Friday to pay for the school trip.", "Pupils should bring money to spend during Friday’s school trip."], answer: 1,
+      explain: "“By Friday at the latest” = the last day to pay is Friday.",
+      words: [W("at the latest", "ең кешіктірмей", "не позднее"), W("school trip", "мектеп саяхаты", "школьная поездка"), W("pupil", "оқушы", "ученик")] },
+    { passage: "ads", q: "You want to learn French and enjoy winter sports at the same time.", options: ["A", "B", "C", "D"], answer: 0,
+      explain: "A: “Morning: French… Afternoon: Skiing”.",
+      words: [W("skiing", "шаңғы тебу", "катание на лыжах"), W("at the same time", "бір мезгілде", "одновременно"), W("full board", "толық тамақтану", "полный пансион")] },
+    { passage: "ads", q: "A friend wants to learn French and take an examination at the end of the course.", options: ["A", "B", "C", "D"], answer: 2,
+      explain: "C: CAVILAM is an “Examination centre”.",
+      words: [W("examination centre", "емтихан орталығы", "экзаменационный центр"), W("intensive", "қарқынды", "интенсивный"), W("all year round", "жыл бойы", "круглый год")] },
+    { passage: "ads", q: "You want to learn Italian but don’t have much time.", options: ["A", "B", "C", "D"], answer: 1,
+      explain: "B: Italian, “Regular short courses”.",
+      words: [W("short course", "қысқа курс", "краткий курс"), W("pre-university", "университетке дейінгі", "довузовский"), W("revision", "қайталау", "повторение")] },
+    { passage: "ads", q: "You want to have a technical report translated into your language.", options: ["A", "B", "C", "D"], answer: 3,
+      explain: "D: Euroterm Translations, “specialised in … technical … texts”.",
+      words: [W("translate", "аудару", "переводить"), W("report", "есеп, баяндама", "отчёт, доклад"), W("freelance translator", "штаттан тыс аудармашы", "внештатный переводчик")] },
+    { passage: "bike", q: "What does it say?", options: ["Use either entrance if you want to buy a bicycle.", "Use the side entrance if your bicycle needs mending.", "Use the side entrance if the front entrance is closed."], answer: 1,
+      explain: "“Take bicycles for repair to side entrance” — mending = repair.",
+      words: [W("repair / mend", "жөндеу", "ремонтировать, чинить"), W("side entrance", "бүйір кіреберіс", "боковой вход"), W("sales", "сауда", "продажа")] },
+    { passage: "fridge", q: "", options: ["This product doesn’t need to be kept cool.", "This product can last for two days after you open it.", "This product must be put in a refrigerator immediately."], answer: 1,
+      explain: "“Use within two days” after opening.",
+      words: [W("refrigerator", "тоңазытқыш", "холодильник"), W("within", "ішінде", "в течение"), W("last", "сақталу, жарамды болу", "храниться, длиться")] },
+    { passage: "weather", q: "Which season does this weather report take place in?", options: ["Summer", "Spring", "Winter", "Autumn"], answer: 1,
+      explain: "“the first day of Spring”.",
+      words: [W("season", "жыл мезгілі", "время года"), W("weather report", "ауа райы болжамы", "прогноз погоды")] },
+    { passage: "weather", q: "What is the temperature now?", options: ["15°C", "20°C", "10°C", "17°C"], answer: 0,
+      explain: "“Right now it's fifteen degrees”.",
+      words: [W("degree", "градус", "градус"), W("clear", "ашық (аспан)", "ясно")] },
+    { passage: "weather", q: "What kind of weather is predicted for tomorrow?", options: ["Sunny", "Cloudy", "Rainy", "Snowing"], answer: 2,
+      explain: "“we should see rain by morning. Don't forget your umbrella tomorrow”.",
+      words: [W("predict", "болжау", "прогнозировать"), W("shower", "нөсер, қысқа жаңбыр", "ливень"), W("raining cats and dogs", "қатты жаңбыр жауу", "льёт как из ведра")] },
+    { passage: "janet", q: "What does Janet want Lisa to do?", options: ["Go to the school with her.", "Explain the homework.", "Lend her a book."], answer: 2,
+      explain: "“I left my book at school! Can I use yours?”",
+      words: [W("lend", "қарызға беру", "давать взаймы"), W("leave (left)", "қалдыру (қалдырды)", "оставить (оставила)")] },
+    { passage: "bodyshop", q: "What is the writer's main purpose in writing this text?", options: ["To tell the reader her life story.", "To introduce her ideas to the reader.", "To explain how international companies operate.", "To invite to her shop"], answer: 1,
+      explain: "She introduces the message of her book: “to succeed in business you have to be different”.",
+      words: [W("purpose", "мақсат", "цель"), W("introduce", "таныстыру", "представлять"), W("operate", "жұмыс істеу", "работать, действовать")] },
+    { passage: "bodyshop", q: "What would someone learn from this text?", options: ["How to make a lot of money.", "How to write a book about business.", "What the writer's book is about.", "How to start a business"], answer: 2,
+      explain: "“Much of what I have learned will be found in this book” — the text describes the book.",
+      words: [W("earn", "табу (ақша)", "зарабатывать"), W("rapidly", "өте жылдам", "быстро"), W("give up", "бас тарту", "отказываться")] },
+    { passage: "bodyshop", q: "What kind of workers does the writer like to employ?", options: ["Workers who get on well with the public.", "Workers who have the same attitude as she does.", "Workers who have their own families.", "Workers who use her products"], answer: 1,
+      explain: "“I have always wanted the people who work for 'The Body Shop' to feel the same way.”",
+      words: [W("employ", "жұмысқа алу", "нанимать"), W("attitude", "көзқарас", "отношение, позиция"), W("get on well with", "тіл табысу", "ладить с")] },
+    { passage: "norwich", q: "Find the false sentence", options: ["The River Wensum flows through East Anglia.", "People have lived by the River Wensum for at least 2,000 years", "Norwich was a capital of Britain", "Norwich is a part of East Anglia"], answer: 2,
+      explain: "Norwich is the capital of East Anglia, not of Britain.",
+      words: [W("capital", "астана", "столица"), W("exist", "өмір сүру, болу", "существовать"), W("beside", "жанында", "рядом с")] },
+    { passage: "norwich", q: "Find the word with a similar meaning to the underlined word in the text.", options: ["city", "countryside", "desert", "island"], answer: 1,
+      explain: "A village is in the countryside (ауыл — ауылдық жер).",
+      words: [W("village", "ауыл", "деревня"), W("countryside", "ауылдық жер", "сельская местность"), W("similar", "ұқсас", "похожий")] },
+    { passage: "poison", q: "Decide which headline goes best with this text", options: ["School dinner causes serious illness", "Meals for the homeless", "Christmas meal", "Turkey lunch"], answer: 0,
+      explain: "The text is about pupils and teachers who got food poisoning after a school meal.",
+      words: [W("food poisoning", "тамақтан улану", "пищевое отравление"), W("headline", "тақырып (жаңалық)", "заголовок"), W("hospitalized", "ауруханаға жатқызылған", "госпитализирован")] },
+    { passage: "poison", q: "What proportion of pupils was stuck down after lunch on Wednesday?", options: ["3/10", "10/13", "1/9", "1/3"], answer: 3,
+      explain: "“A third of all pupils” = 1/3.",
+      words: [W("proportion", "үлес, бөлік", "доля"), W("a third", "үштен бір", "треть"), W("struck down", "ауырып қалу", "слечь (заболеть)")] },
+    { passage: "swim", q: "", options: ["You can get information about new times from the receptionist.", "Tell the receptionist about any change in your details.", "The swimming pool is open at the usual times."], answer: 0,
+      explain: "“Please ask at reception for details” of the new timetable.",
+      words: [W("timetable", "кесте", "расписание"), W("reception", "қабылдау орны", "ресепшен"), W("details", "толық мәлімет", "подробности")] },
+  ];
+
+  ["kz", "ru"].forEach((stream) => {
+    const s = window.EXAMS.nis.streams[stream].subjects.find((x) => x.id === "english");
+    s.tests.push({
+      id: "2", title: stream === "ru" ? "Тест 2" : "2-тест", subtitle: stream === "ru" ? "Работа с текстом · 40 минут" : "Мәтінмен жұмыс · 40 минут", fixedOrder: true,
+      source: "«Сборник тестов в НИШ. Английский язык», TEST 2",
       vocab: VOCAB, passages: PASSAGES,
       questions: QUESTIONS.map((q) => Object.assign({}, q)),
     });

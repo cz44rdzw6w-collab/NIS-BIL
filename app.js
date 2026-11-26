@@ -463,7 +463,7 @@
             <div class="passage__text">${richText(passage.text)}</div>
           </article>` : ""}
           <div class="card quiz__card">
-            <p class="quiz__q">${esc(item.q)}</p>
+            ${item.q ? `<p class="quiz__q">${esc(item.q)}</p>` : ""}
             <div class="options">
               ${item.options.map((o, i) => `<button class="option" data-i="${i}"><b>${LETTERS[i]}</b>${esc(o)}</button>`).join("")}
             </div>
@@ -518,7 +518,7 @@
               const passage = m.item.passage && passages[m.item.passage];
               return `
                 <li class="review__item">
-                  <div class="review__q"><b>${t.q} ${m.n}.</b> ${esc(m.item.q)}${passage && passage.title ? ` <span class="review__src">(${esc(passage.title)})</span>` : ""}</div>
+                  <div class="review__q"><b>${t.q} ${m.n}.</b> ${esc(m.item.q || (passage ? passage.text.split("\n")[0] : ""))}${passage && passage.title ? ` <span class="review__src">(${esc(passage.title)})</span>` : ""}</div>
                   <div class="review__ans is-bad"><span>${t.yours}:</span> ${esc(m.item.options[m.chosen])}</div>
                   <div class="review__ans is-ok"><span>${t.correctIs}:</span> ${esc(m.item.options[m.item.answer])}</div>
                   ${m.item.explain ? `<p class="review__explain">💡 ${esc(m.item.explain)}</p>` : ""}
