@@ -28,11 +28,11 @@
     const all = read(TRACKER_KEY, {});
     const t = all[examId] || {};
     // Емтихан күні тұрақты: тек data/tasks.js ішіндегі examDate алынады
-    return { date: EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [], ubs: t.ubs || [] };
+    return { date: EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [], ubs: t.ubs || [], week: t.week || {} };
   }
   function saveTracker(examId, data) {
     const all = read(TRACKER_KEY, {});
-    all[examId] = { days: data.days, todos: data.todos, ubs: data.ubs };
+    all[examId] = { days: data.days, todos: data.todos, ubs: data.ubs, week: data.week };
     write(TRACKER_KEY, all);
   }
 
@@ -396,6 +396,7 @@
   }
 
   /* ---------- ҮБС талдауы және мотивация ---------- */
+  const DAY_NAMES = ["Дүйсенбі", "Сейсенбі", "Сәрсенбі", "Бейсенбі", "Жұма", "Сенбі", "Жексенбі"];
 
   // ҮБС жазбасынан пән бойынша пайыздарды есептейді: { subjectId: pct }
   function ubsPercents(entry) {
@@ -444,6 +445,8 @@
     let editingName = !profile.name;
     let pendingDelete = null;
     let goalSubject = null;
+    const todayIdx = (new Date().getDay() + 6) % 7;
+    let openDay = todayIdx;
 
     const firstStream = Object.values(exam.streams)[0];
     const defaultStream = Object.keys(exam.streams)[0];
@@ -556,11 +559,56 @@
           <div class="curator-tip">
             <span aria-hidden="true">🤝</span>
             <div>
-              <strong>Мақсатыңды куратормен бірге құр</strong>
-              <p>ҮБС нәтижеңді куратормен қарап шығып, осы аптаға не істейтініңді бірге шешіңдер. Сосын мақсатты төмендегі «Мақсаттар» бөліміне жаз.</p>
-              <button class="chip chip--btn" id="go-goals">Мақсат құру ↓</button>
+              <strong>Кестеңді куратормен бірге құр</strong>
+              <p>ҮБС нәтижеңді куратормен қарап шығып, қай күні қай пәнге дайындалатыныңды бірге шешіңдер. Сосын төмендегі «Апталық кесте» бөлімінде белгіле.</p>
+              <button class="chip chip--btn" id="go-week">Кесте құру ↓</button>
             </div>
           </div>
+        </section>`;
+    }
+
+    function weakestId() {
+      const last = data.ubs[data.ubs.length - 1];
+      if (!last) return null;
+      const cur = ubsPercents(last);
+      const r = subjects.filter((s) => cur[s.id] != null).sort((a, b) => cur[a.id] - cur[b.id]);
+      return r.length > 1 ? r[0].id : null;
+    }
+
+    function weekHTML() {
+      const weak = weakestId();
+      const total = Object.values(data.week).reduce((n, d) => n + d.length, 0);
+      const days = DAY_NAMES.map((name, i) => {
+        const picked = data.week[i] || [];
+        const open = i === openDay;
+        const tags = picked.length
+          ? picked.map((id) => { const s = subjectById(id); return s ? `<span class="day__tag">${s.icon} ${esc(s.title)}</span>` : ""; }).join("")
+          : `<span class="day__none">Пән таңдалмаған</span>`;
+        const body = open ? `
+          <div class="day__body" id="day-body-${i}">
+            ${subjects.map((s) => `
+              <label class="pick" for="pick-${examId}-${i}-${s.id}">
+                <input type="checkbox" id="pick-${examId}-${i}-${s.id}" data-pick="${i}:${s.id}" ${picked.includes(s.id) ? "checked" : ""}>
+                <span class="subject__icon ${s.color}">${s.icon}</span>
+                <span class="pick__title">${esc(s.title)}${s.id === weak ? ` <span class="tag">Назар аудар</span>` : ""}</span>
+              </label>`).join("")}
+          </div>` : "";
+        return `
+          <div class="day ${open ? "is-open" : ""} ${i === todayIdx ? "is-today" : ""}">
+            <button class="day__head" data-open-day="${i}" aria-expanded="${open}" aria-controls="day-body-${i}">
+              <span class="day__name">${name}${i === todayIdx ? " <em>бүгін</em>" : ""}</span>
+              <span class="day__count">${picked.length ? picked.length + " пән" : ""}</span>
+              <span class="day__chev" aria-hidden="true">›</span>
+            </button>
+            ${open ? "" : `<div class="day__tags">${tags}</div>`}
+            ${body}
+          </div>`;
+      }).join("");
+      return `
+        <section class="card weekplan" id="weekplan">
+          <div class="card__title"><h3>Апталық кесте</h3>${total ? `<span class="chip">аптасына ${total} сабақ</span>` : ""}</div>
+          <p class="muted">Күнді бас та, сол күні дайындалатын пәндерді белгіле. Кестені куратормен ақылдасып құр.</p>
+          <div class="days">${days}</div>
         </section>`;
     }
 
@@ -675,6 +723,8 @@
           ${planHTML()}
         </div>
 
+        ${weekHTML()}
+
         <div class="grid grid--2 tracker-grid">
           <section class="card">
             <div class="card__title"><h3>Дайындық күнтізбесі</h3></div>
@@ -756,11 +806,24 @@
         draw();
         const h = app.querySelector(".history"); if (h && data.ubs.length) h.open = true;
       }));
-      const goGoals = app.querySelector("#go-goals");
-      if (goGoals) goGoals.addEventListener("click", () => {
-        app.querySelector("#goals").scrollIntoView({ behavior: "smooth", block: "start" });
-        setTimeout(() => app.querySelector(`#todo-input-${examId}`).focus({ preventScroll: true }), 400);
-      });
+      const goWeek = app.querySelector("#go-week");
+      if (goWeek) goWeek.addEventListener("click", () =>
+        app.querySelector("#weekplan").scrollIntoView({ behavior: "smooth", block: "start" }));
+
+      app.querySelectorAll("[data-open-day]").forEach((b) => b.addEventListener("click", () => {
+        const i = Number(b.dataset.openDay);
+        openDay = openDay === i ? -1 : i;
+        draw();
+      }));
+      app.querySelectorAll("[data-pick]").forEach((c) => c.addEventListener("change", () => {
+        const [day, id] = c.dataset.pick.split(":");
+        const chosen = new Set(data.week[day] || []);
+        if (c.checked) chosen.add(id); else chosen.delete(id);
+        data.week[day] = subjects.map((s) => s.id).filter((sid) => chosen.has(sid)); // пәндер ретін сақтаймыз
+        if (!data.week[day].length) delete data.week[day];
+        saveTracker(examId, data);
+        draw();
+      }));
 
       app.querySelector("#mark-today").addEventListener("click", () => {
         const k = dayKey(new Date());
