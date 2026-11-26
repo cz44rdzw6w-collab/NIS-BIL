@@ -8,6 +8,7 @@
   /* ================= Сақтау (тек осы браузерде) ================= */
   const PROGRESS_KEY = "daiyndyq-progress-v1";
   const TRACKER_KEY = "daiyndyq-tracker-v1";
+  const PROFILE_KEY = "daiyndyq-profile-v1";
 
   function read(key, fallback) {
     try { const v = JSON.parse(localStorage.getItem(key)); return v == null ? fallback : v; } catch (e) { return fallback; }
@@ -27,13 +28,16 @@
     const all = read(TRACKER_KEY, {});
     const t = all[examId] || {};
     // Емтихан күні тұрақты: тек data/tasks.js ішіндегі examDate алынады
-    return { date: EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [] };
+    return { date: EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [], ubs: t.ubs || [] };
   }
   function saveTracker(examId, data) {
     const all = read(TRACKER_KEY, {});
-    all[examId] = { days: data.days, todos: data.todos };
+    all[examId] = { days: data.days, todos: data.todos, ubs: data.ubs };
     write(TRACKER_KEY, all);
   }
+
+  const loadProfile = () => read(PROFILE_KEY, { name: "" });
+  const saveProfile = (p) => write(PROFILE_KEY, p);
 
   /* ================= Көмекші функциялар ================= */
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -104,7 +108,7 @@
     app.innerHTML = `
       <section class="hero">
         <div>
-          <span class="eyebrow">НИШ · БИЛ · 2027</span>
+          <span class="eyebrow">${loadProfile().name ? `Сәлем, ${esc(loadProfile().name)}! 👋` : "НИШ · БИЛ · 2027"}</span>
           <h1>Арманыңдағы мектепке <span>бірге</span> дайындалайық</h1>
           <p>Назарбаев Зияткерлік мектептері мен Білім-инновация лицейлерінің емтихандарына арналған тапсырмалар, түсіндірмелер және өз прогресіңді бақылау бір жерде.</p>
           <div class="hero__actions">
@@ -172,7 +176,7 @@
         <div class="grid grid--3">
           <div class="card feature"><i class="ic-bur">🎯</i><h3>Емтихан форматы</h3><p>Тапсырмалар нақты емтихан құрылымына сай пән бойынша топтастырылған.</p></div>
           <div class="card feature"><i class="ic-oli">💡</i><h3>Түсіндірмелер</h3><p>Әр сұрақтан кейін дұрыс жауап пен қысқаша шешім көрсетіледі.</p></div>
-          <div class="card feature"><i class="ic-lav">📅</i><h3>Трекер</h3><p>НИШ пен БИЛ үшін бөлек: кері санақ, дайындық күнтізбесі және мақсаттар.</p></div>
+          <div class="card feature"><i class="ic-lav">📅</i><h3>Трекер және жоспар</h3><p>ҮБС нәтижеңді енгіз: әлсіз пәніңді тауып, апталық жеке жоспар құрып береді.</p></div>
         </div>
       </section>
 
@@ -391,13 +395,194 @@
     return { pct, tried };
   }
 
+  /* ---------- ҮБС талдауы және жеке жоспар ---------- */
+  const DAY_NAMES = ["Дүйсенбі", "Сейсенбі", "Сәрсенбі", "Бейсенбі", "Жұма", "Сенбі", "Жексенбі"];
+
+  // ҮБС жазбасынан пән бойынша пайыздарды есептейді: { subjectId: pct }
+  function ubsPercents(entry) {
+    const out = {};
+    if (!entry) return out;
+    Object.entries(entry.scores).forEach(([id, v]) => { if (v.m > 0) out[id] = Math.round((v.s / v.m) * 100); });
+    return out;
+  }
+  const avgOf = (obj) => { const v = Object.values(obj); return v.length ? Math.round(v.reduce((a, b) => a + b, 0) / v.length) : 0; };
+  const levelOf = (pct) => (pct < 50 ? "low" : pct < 75 ? "mid" : "high");
+
+  function buildPlan(subjects, latest, prev, name, daysLeft) {
+    const cur = ubsPercents(latest);
+    const ranked = subjects.filter((s) => cur[s.id] != null).sort((a, b) => cur[a.id] - cur[b.id]);
+    if (!ranked.length) return null;
+
+    const avg = avgOf(cur);
+    const prevPct = ubsPercents(prev);
+    const common = ranked.filter((s) => prevPct[s.id] != null);
+    const delta = common.length
+      ? Math.round(common.reduce((a, s) => a + cur[s.id] - prevPct[s.id], 0) / common.length)
+      : null;
+
+    const who = name ? `${name}, ` : "";
+    const headline = avg >= 85 ? `${who}керемет нәтиже! Енді осы деңгейді ұстап тұру маңызды.`
+      : avg >= 70 ? `${who}жақсы нәтиже! Аздап күш салсаң, ең жоғары деңгейге шығасың.`
+      : avg >= 50 ? `${who}негізің бар! Әлсіз пәндерге көңіл бөлсең, нәтиже тез өседі.`
+      : `${who}бастысы тоқтамау. Күн сайынғы шағын қадам үлкен нәтиже береді.`;
+
+    const lines = [];
+    if (delta != null && delta > 0) lines.push(`Өткен ҮБС-пен салыстырғанда орта есеппен +${delta}% өстің 📈 Осылай жалғастыр!`);
+    else if (delta != null && delta < 0) lines.push(`Өткен жолдан ${Math.abs(delta)}% төмендедің. Уайымдама: бұл қай жерге көңіл бөлу керегін көрсетеді.`);
+    else if (delta === 0) lines.push("Нәтижең тұрақты. Енді келесі деңгейге көтерілу уақыты.");
+    const best = ranked[ranked.length - 1];
+    if (ranked.length > 1) lines.push(`Ең мықты пәнің: ${best.title} (${cur[best.id]}%). Оны апта соңындағы аралас тестте ұстап тұр.`);
+    if (daysLeft > 0) lines.push(`Емтиханға ${daysLeft} күн (шамамен ${Math.ceil(daysLeft / 7)} апта) қалды. Әр апта маңызды.`);
+
+    const W = ranked[0];
+    const S = ranked[1] || W;
+    const O = ranked[2] || S;
+    const task = (s) => {
+      const lvl = levelOf(cur[s.id]);
+      return lvl === "low" ? "Негізгі тақырыптарды қайталау + 15 жеңіл тапсырма"
+        : lvl === "mid" ? "ҮБС-тағы қателерді талдау + 20 тапсырма"
+        : "Күрделі тапсырмалар + уақытпен шағын тест";
+    };
+    const slot = (s, min) => ({ subject: s, minutes: min, text: task(s) });
+    const week = [slot(W, 60), slot(S, 45), slot(W, 60), slot(O, 30), slot(W, 60), slot(S, 45), { subject: null, minutes: 60, text: "Барлық пәннен аралас сынақ тест + апталық қателерді талдау" }];
+
+    return { headline: cap(headline), lines, weakest: W, weakPct: cur[W.id], ranked, cur, avg, delta, week };
+  }
+
   function renderTracker(examId) {
     const exam = EXAMS[examId];
     const data = loadTracker(examId);
+    const profile = loadProfile();
     let view = new Date(); view.setDate(1);
+    let editingName = !profile.name;
+    let pendingDelete = null;
 
     const firstStream = Object.values(exam.streams)[0];
     const defaultStream = Object.keys(exam.streams)[0];
+    const subjects = firstStream.subjects;
+    const subjectById = (id) => subjects.find((s) => s.id === id);
+
+    function profileHTML() {
+      if (editingName) {
+        return `
+          <form class="card profile profile--edit" id="name-form">
+            <label for="profile-name"><strong>Аты-жөнің</strong><span>Жоспар мен мотивация саған арнап жазылады.</span></label>
+            <div class="todo-form">
+              <input type="text" id="profile-name" value="${esc(profile.name)}" placeholder="Мысалы: Айгерім Серікова" maxlength="60" autocomplete="name">
+              <button class="btn btn--primary" type="submit">Сақтау</button>
+            </div>
+          </form>`;
+      }
+      return `
+        <div class="card profile">
+          <span class="profile__avatar">${esc(profile.name.trim().charAt(0).toUpperCase())}</span>
+          <div class="profile__text"><span>Оқушы</span><strong>${esc(profile.name)}</strong></div>
+          <button class="chip chip--btn" id="name-edit">Өзгерту</button>
+        </div>`;
+    }
+
+    function ubsFormHTML() {
+      const last = data.ubs[data.ubs.length - 1];
+      return `
+        <details class="ubs-form-wrap" ${data.ubs.length ? "" : "open"}>
+          <summary class="btn btn--olive">+ Жаңа ҮБС нәтижесін енгізу</summary>
+          <form id="ubs-form" class="ubs-form">
+            <label class="ubs-date" for="ubs-date-${examId}">ҮБС күні
+              <input type="date" id="ubs-date-${examId}" value="${dayKey(new Date())}" max="${dayKey(new Date())}" required>
+            </label>
+            <div class="ubs-rows">
+              <div class="ubs-row ubs-row--head"><span>Пән</span><span>Балл</span><span>Максимум</span></div>
+              ${subjects.map((s) => {
+                const m = last && last.scores[s.id] ? last.scores[s.id].m : "";
+                return `
+                <div class="ubs-row">
+                  <label for="ubs-s-${examId}-${s.id}">${s.icon} ${esc(s.title)}</label>
+                  <input type="number" inputmode="decimal" min="0" step="0.5" id="ubs-s-${examId}-${s.id}" data-ubs-s="${s.id}" placeholder="–">
+                  <input type="number" inputmode="decimal" min="1" step="0.5" id="ubs-m-${examId}-${s.id}" data-ubs-m="${s.id}" value="${m}" placeholder="мыс. 20" aria-label="${esc(s.title)}: максимум балл">
+                </div>`;
+              }).join("")}
+            </div>
+            <p class="form-hint">Тапсырмаған пәнді бос қалдыр. Максимум балл келесі жолы есте қалады.</p>
+            <p class="form-error" id="ubs-error" hidden></p>
+            <button class="btn btn--primary btn--block" type="submit">Нәтижені сақтау</button>
+          </form>
+        </details>`;
+    }
+
+    function ubsResultsHTML() {
+      if (!data.ubs.length) return `<p class="empty">Әзірге ҮБС нәтижесі жоқ. Соңғы ҮБС балдарыңды енгізсең, әлсіз пәніңді тауып, жеке жоспар құрамын.</p>`;
+      const latest = data.ubs[data.ubs.length - 1];
+      const prev = data.ubs[data.ubs.length - 2];
+      const cur = ubsPercents(latest), was = ubsPercents(prev);
+      const ranked = subjects.filter((s) => cur[s.id] != null).sort((a, b) => cur[a.id] - cur[b.id]);
+      const weakest = ranked[0];
+      const rows = subjects.filter((s) => cur[s.id] != null).map((s) => {
+        const pct = cur[s.id], sc = latest.scores[s.id];
+        const d = was[s.id] != null ? pct - was[s.id] : null;
+        const dHTML = d == null ? "" : `<span class="delta ${d > 0 ? "up" : d < 0 ? "down" : ""}">${d > 0 ? "▲ +" : d < 0 ? "▼ " : "● "}${d}%</span>`;
+        return `
+          <div class="ubs-bar">
+            <div class="ubs-bar__top">
+              <span>${s.icon} ${esc(s.title)} ${s === weakest && ranked.length > 1 ? `<span class="tag">Назар аудар</span>` : ""}</span>
+              <span class="ubs-bar__nums">${dHTML}<b>${sc.s}/${sc.m}</b> · ${pct}%</span>
+            </div>
+            <div class="bar bar--${levelOf(pct)}"><span style="width:${pct}%"></span></div>
+          </div>`;
+      }).join("");
+      const history = data.ubs.map((u, i) => ({ u, i })).reverse().map(({ u, i }) => `
+        <li>
+          <span><b>ҮБС ${i + 1}</b> · ${humanDate(u.date)}</span>
+          <span class="history__right">орташа ${avgOf(ubsPercents(u))}%
+            <button class="todo__del ${pendingDelete === i ? "is-confirm" : ""}" data-ubs-del="${i}" aria-label="ҮБС ${i + 1} өшіру">${pendingDelete === i ? "Өшіру?" : "✕"}</button>
+          </span>
+        </li>`).join("");
+      return `
+        <p class="muted">Соңғы ҮБС ${data.ubs.length}: ${humanDate(latest.date)}${prev ? " · өткен ҮБС-пен салыстыру" : ""}</p>
+        <div class="ubs-bars">${rows}</div>
+        <details class="history"><summary>ҮБС тарихы (${data.ubs.length})</summary><ul>${history}</ul></details>`;
+    }
+
+    function planHTML() {
+      const latest = data.ubs[data.ubs.length - 1];
+      const daysLeft = Math.ceil((examMoment(data.date) - Date.now()) / 86400000);
+      const plan = latest && buildPlan(subjects, latest, data.ubs[data.ubs.length - 2], profile.name.trim(), daysLeft);
+      if (!plan) {
+        return `
+          <section class="card plan plan--empty">
+            <div class="card__title"><h3>Жеке жоспар</h3></div>
+            <p class="empty">ҮБС нәтижесін енгізгеннен кейін осы жерде саған арналған мотивация мен апталық жоспар пайда болады.</p>
+          </section>`;
+      }
+      const today = (new Date().getDay() + 6) % 7;
+      return `
+        <section class="card plan">
+          <div class="motivation">
+            <p class="motivation__head">${esc(plan.headline)}</p>
+            <ul>${plan.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>
+            <div class="focus">
+              <span class="subject__icon ${plan.weakest.color}">${plan.weakest.icon}</span>
+              <div><span>Осы аптаның басты пәні</span><strong>${esc(plan.weakest.title)} · ${plan.weakPct}%</strong></div>
+              <a class="btn btn--primary" href="#quiz-${examId}-${defaultStream}-${plan.weakest.id}">Қазір бастау →</a>
+            </div>
+          </div>
+          <div class="card__title"><h3>Апталық жоспар</h3><button class="chip chip--btn" id="plan-to-todos">Мақсаттарға қосу</button></div>
+          <ol class="week">
+            ${plan.week.map((d, i) => `
+              <li class="${i === today ? "is-today" : ""} ${d.subject === plan.weakest ? "is-focus" : ""}">
+                <span class="week__day">${DAY_NAMES[i]}${i === today ? " · бүгін" : ""}</span>
+                <span class="week__main"><strong>${d.subject ? `${d.subject.icon} ${esc(d.subject.title)}` : "🧪 Аралас тест"}</strong><span>${esc(d.text)}</span></span>
+                <span class="week__min">${d.minutes} мин</span>
+              </li>`).join("")}
+          </ol>
+        </section>`;
+    }
+
+    function planTodos() {
+      const latest = data.ubs[data.ubs.length - 1];
+      const plan = latest && buildPlan(subjects, latest, data.ubs[data.ubs.length - 2], "", 0);
+      if (!plan) return [];
+      return plan.week.map((d, i) => `${DAY_NAMES[i]}: ${d.subject ? d.subject.title : "Аралас тест"}, ${d.minutes} мин`);
+    }
 
     function calendarHTML() {
       const y = view.getFullYear(), m = view.getMonth();
@@ -467,6 +652,7 @@
         <div class="breadcrumbs"><a href="#home">Басты бет</a> / Трекер / ${esc(exam.title)}</div>
         <h1 class="page-title">Дайындық трекері</h1>
         <p class="page-sub">НИШ пен БИЛ трекерлері бөлек жүргізіледі. Деректер осы құрылғыда сақталады.</p>
+        ${profileHTML()}
         <div class="lang-switch">
           ${EXAM_IDS.map((id) => `<a href="#tracker-${id}" class="${id === examId ? "active" : ""}">${esc(EXAMS[id].title)}</a>`).join("")}
         </div>
@@ -485,6 +671,15 @@
           ${countdownHTML(data.date, true)}
           <p class="tracker-hero__note">${humanDate(data.date)}, сағат 09:00</p>
         </section>
+
+        <div class="grid grid--2 tracker-grid">
+          <section class="card ubs">
+            <div class="card__title"><h3>ҮБС нәтижелері</h3>${data.ubs.length ? `<span class="chip">${data.ubs.length} ҮБС</span>` : ""}</div>
+            ${ubsResultsHTML()}
+            ${ubsFormHTML()}
+          </section>
+          ${planHTML()}
+        </div>
 
         <div class="grid grid--2 tracker-grid">
           <section class="card">
@@ -515,6 +710,59 @@
     }
 
     function bind() {
+      const nameForm = app.querySelector("#name-form");
+      if (nameForm) nameForm.addEventListener("submit", (e) => {
+        e.preventDefault();
+        const name = app.querySelector("#profile-name").value.trim().replace(/\s+/g, " ");
+        if (!name) return;
+        profile.name = name;
+        saveProfile(profile);
+        editingName = false;
+        draw();
+      });
+      const nameEdit = app.querySelector("#name-edit");
+      if (nameEdit) nameEdit.addEventListener("click", () => { editingName = true; draw(); app.querySelector("#profile-name").focus(); });
+
+      app.querySelector("#ubs-form").addEventListener("submit", (e) => {
+        e.preventDefault();
+        const err = app.querySelector("#ubs-error");
+        const scores = {};
+        let problem = "";
+        subjects.forEach((s) => {
+          const sv = app.querySelector(`[data-ubs-s="${s.id}"]`).value;
+          const mv = app.querySelector(`[data-ubs-m="${s.id}"]`).value;
+          if (sv === "") return;
+          const sc = Number(sv), mx = Number(mv);
+          if (!(mx > 0)) problem = problem || `${s.title}: максимум балды жаз.`;
+          else if (sc < 0 || sc > mx) problem = problem || `${s.title}: балл 0 мен ${mx} аралығында болуы керек.`;
+          else scores[s.id] = { s: sc, m: mx };
+        });
+        if (!problem && !Object.keys(scores).length) problem = "Кемінде бір пәннің баллын жаз.";
+        if (problem) { err.textContent = problem; err.hidden = false; return; }
+        const date = app.querySelector(`#ubs-date-${examId}`).value || dayKey(new Date());
+        data.ubs.push({ date, scores });
+        data.ubs.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
+        saveTracker(examId, data);
+        pendingDelete = null;
+        draw();
+        app.querySelector(".plan").scrollIntoView({ behavior: "smooth", block: "start" });
+      });
+      app.querySelectorAll("[data-ubs-del]").forEach((b) => b.addEventListener("click", () => {
+        const i = Number(b.dataset.ubsDel);
+        if (pendingDelete === i) { data.ubs.splice(i, 1); pendingDelete = null; saveTracker(examId, data); }
+        else pendingDelete = i;
+        draw();
+        const h = app.querySelector(".history"); if (h && data.ubs.length) h.open = true;
+      }));
+      const toTodos = app.querySelector("#plan-to-todos");
+      if (toTodos) toTodos.addEventListener("click", () => {
+        const existing = new Set(data.todos.map((t) => t.text));
+        planTodos().forEach((text) => { if (!existing.has(text)) data.todos.push({ text, done: false }); });
+        saveTracker(examId, data);
+        draw();
+        app.querySelector("#todo-form").scrollIntoView({ behavior: "smooth", block: "center" });
+      });
+
       app.querySelector("#mark-today").addEventListener("click", () => {
         const k = dayKey(new Date());
         if (data.days[k]) delete data.days[k]; else data.days[k] = true;
