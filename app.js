@@ -587,38 +587,48 @@
       return dayKey(d);
     }
 
-    function todayHTML() {
+    // Duolingo сияқты серия: бүгінгі мақсаттар орындалса ми жанады, орындалмаса сөнеді
+    function streakHTML() {
       const todayKey = dayKey(new Date());
       const picked = data.week[todayIdx] || [];
       const done = data.done[todayKey] || [];
-      if (!picked.length) {
-        return `
-          <div class="today-goals">
-            <div class="today-goals__head"><strong>Бүгінгі мақсаттар · ${DAY_NAMES[todayIdx]}</strong></div>
-            <p class="today-goals__empty">Бүгінге пән таңдалмаған. Төменнен «${DAY_NAMES[todayIdx]}» күнін ашып, пән таңда.</p>
-          </div>`;
-      }
+      const lit = !!data.days[todayKey];
+      const streak = streakOf(data.days);
+      const state = lit ? "lit" : streak > 0 ? "warn" : "off";
+      const msg = lit ? "Ми жанып тұр! Ертең де жалғастыр."
+        : streak > 0 ? "Бүгінгі мақсатыңды орында, әйтпесе ми сөніп қалады!"
+        : "Ми сөніп тұр. Бүгінгі мақсатыңды орындап, қайта жақ!";
       const n = picked.filter((id) => done.includes(id)).length;
-      const all = n === picked.length;
-      return `
-        <div class="today-goals ${all ? "is-complete" : ""}">
-          <div class="today-goals__head">
-            <strong>Бүгінгі мақсаттар · ${DAY_NAMES[todayIdx]}</strong>
-            <span class="chip">${n}/${picked.length} орындалды</span>
-          </div>
-          <div class="today-goals__list">
+      const dots = DAY_NAMES.map((name, i) => {
+        const k = dateOfWeekday(i);
+        const ok = !!data.days[k];
+        const cls = ["streak__dot", ok ? "is-done" : "", i === todayIdx ? "is-today" : "", i > todayIdx ? "is-future" : ""].join(" ");
+        return `<span class="streak__day"><small>${WEEKDAYS[i]}</small><i class="${cls}" aria-label="${name}: ${ok ? "орындалды" : "орындалмаған"}">${ok ? "✓" : ""}</i></span>`;
+      }).join("");
+      const today = picked.length ? `
+          <div class="streak__today">
+            <div class="streak__today-head"><span>Бүгінгі мақсаттар</span><b>${n}/${picked.length}</b></div>
             ${picked.map((id) => {
               const sj = subjectById(id); if (!sj) return "";
               const ok = done.includes(id);
-              return `
-                <button class="today-item ${ok ? "is-done" : ""}" data-done-subj="${id}" aria-pressed="${ok}">
-                  <span class="subject__icon ${sj.color}">${sj.icon}</span>
-                  <span class="today-item__title">${esc(sj.title)}</span>
-                  <span class="today-item__state">${ok ? "✓ Орындадым" : "Белгілеу"}</span>
+              return `<button class="streak__goal ${ok ? "is-done" : ""}" data-done-subj="${id}" aria-pressed="${ok}">
+                  <span>${sj.icon} ${esc(sj.title)}</span><em>${ok ? "✓ Орындадым" : "Орындадым"}</em>
                 </button>`;
             }).join("")}
+          </div>`
+        : `<p class="streak__hint">Бүгінге (${DAY_NAMES[todayIdx].toLowerCase()}) пән таңдалмаған. Төменнен күнді ашып, 2 пәнге дейін таңда.</p>`;
+      return `
+        <div class="streak streak--${state}">
+          <div class="streak__top">
+            <div class="streak__brain" aria-hidden="true"><span>🧠</span></div>
+            <div class="streak__count">
+              <b>${streak}</b>
+              <span>күн қатарынан</span>
+            </div>
           </div>
-          ${all ? `<p class="today-goals__win">🎉 Бүгінгі мақсаттар орындалды! Күнтізбеде белгіленді.</p>` : ""}
+          <p class="streak__msg">${msg}</p>
+          <div class="streak__week">${dots}</div>
+          ${today}
         </div>`;
     }
 
@@ -662,7 +672,7 @@
         <section class="card weekplan" id="weekplan">
           <div class="card__title"><h3>Мақсаттар</h3>${total ? `<span class="chip">аптасына ${total} сабақ</span>` : ""}</div>
           <p class="muted">Аптаның әр күнін бас та, сол күні дайындалатын пәндерді белгіле: күніне ең көбі ${MAX_PER_DAY} пән. Мақсатыңды куратормен ақылдасып құр.</p>
-          ${todayHTML()}
+          ${streakHTML()}
           <div class="days">${days}</div>
         </section>`;
     }
@@ -832,7 +842,8 @@
         data.done[k] = [...set];
         if (!data.done[k].length) delete data.done[k];
         const picked = data.week[todayIdx] || [];
-        if (picked.length && picked.every((x) => set.has(x))) data.days[k] = true; // бәрі орындалса, күнтізбеде белгілейміз
+        // Бүгінгі барлық пән орындалса, ми жанады (күнтізбеде белгіленеді); біреуі алынса, сөнеді
+        if (picked.every((x) => set.has(x))) data.days[k] = true; else delete data.days[k];
         saveTracker(examId, data);
         draw();
       }));
