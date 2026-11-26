@@ -477,6 +477,9 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .vocab td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
 .vocab td:first-child { font-weight: 700; color: var(--burgundy); font-style: italic; }
 .vocab tr:nth-child(even) td { background: var(--lavender-soft); }
+.vocab__group th { text-align: left; padding: 14px 12px 6px; font-size: 13px; font-weight: 800; color: var(--olive); text-transform: none; letter-spacing: 0; border-bottom: 2px solid var(--olive-soft); }
+.vocab--grouped tbody tr:nth-child(odd):not(.vocab__group) td { background: var(--lavender-soft); }
+.vocab--grouped tbody tr:nth-child(even) td { background: none; }
 .review { margin-top: 18px; }
 .review h3 { margin: 0 0 6px; color: var(--burgundy); display: flex; align-items: center; gap: 8px; }
 .review h4 { margin: 16px 0 4px; color: var(--burgundy); }

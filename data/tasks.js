@@ -260,16 +260,46 @@ window.EXAMS = {
  */
 (function () {
   const W = window.W;
+  // Тест алдындағы сөздік: мәтіндерде кездесетін сөздер, мәтін бойынша топталған (платформа құрастырған)
   const VOCAB = [
-    W("Accident", "Оқыс жағдай", "Несчастный случай"),
-    W("Ring", "Сақина", "Кольцо"),
-    W("Expensive", "Қымбат", "Дорогой"),
-    W("Frightened", "Қорқып қалған", "Испуганный"),
-    W("Injury", "Жарақат", "Травма"),
-    W("Predator", "Жыртқыш", "Хищник"),
-    W("Charging interest", "Өсім алу", "Начисление процентов"),
-    W("Wealthy", "Бай", "Состоятельный, богатый"),
-    W("Habitat", "Тіршілік ету орны, мекен", "Место обитания"),
+    { title: "The Cycling Club (1)", words: [
+      W("organization", "ұйым", "организация"), W("member", "мүше", "член, участник"), W("promote", "насихаттау, қолдау", "продвигать"),
+      W("cycle lane", "велосипед жолағы", "велодорожка"), W("participation", "қатысу", "участие"), W("regulations", "ережелер", "правила, нормы")] },
+    { title: "Why cycle? (2)", words: [
+      W("environment", "қоршаған орта", "окружающая среда"), W("traffic jam", "көлік кептелісі", "пробка"), W("pollution", "ластану", "загрязнение"),
+      W("public transport", "қоғамдық көлік", "общественный транспорт"), W("combine", "біріктіру", "сочетать")] },
+    { title: "Join our club! · Contact us! (3–4)", words: [
+      W("social events", "көпшілік шаралар", "общественные мероприятия"), W("advice", "кеңес", "совет"), W("discount", "жеңілдік", "скидка"),
+      W("repair", "жөндеу", "ремонт"), W("insurance", "сақтандыру", "страховка"), W("area", "аудан, өңір", "район, местность")] },
+    { title: "Equipment (5)", words: [
+      W("equipment", "құрал-жабдық", "снаряжение"), W("guarantee", "кепілдік беру", "гарантировать"), W("injury", "жарақат", "травма")] },
+    { title: "Penguins (6–7)", words: [
+      W("continent", "құрлық, материк", "материк"), W("wild", "жабайы", "дикий"), W("survive", "тірі қалу", "выживать"), W("layer", "қабат", "слой"),
+      W("fat", "май", "жир"), W("habitat", "тіршілік ету орны, мекен", "место обитания"), W("predator", "жыртқыш", "хищник"),
+      W("killer whale", "косатка (кит)", "косатка"), W("seal", "итбалық", "тюлень")] },
+    { title: "Library hours (8)", words: [
+      W("weekdays", "жұмыс күндері (дс–жм)", "будние дни"), W("till", "...дейін", "до")] },
+    { title: "The United States (9–10)", words: [
+      W("located", "орналасқан", "расположен"), W("plain", "жазық", "равнина"), W("desert", "шөл", "пустыня"), W("volcano", "жанартау", "вулкан"),
+      W("rainforest", "тропикалық орман", "тропический лес"), W("chain of islands", "аралдар тізбегі", "цепь островов")] },
+    { title: "School sign (11)", words: [
+      W("entrance", "кіреберіс", "вход"), W("ahead", "алда", "впереди"), W("dead slow", "өте баяу", "очень медленно")] },
+    { title: "What are the Banks? (12–14)", words: [
+      W("savings account", "жинақ шоты", "сберегательный счёт"), W("earn", "табу (ақша)", "зарабатывать"), W("paycheck", "жалақы", "зарплата"),
+      W("bill", "төлем шоты", "счёт (к оплате)"), W("lend / loan", "қарызға беру / несие", "давать взаймы / кредит"),
+      W("borrow", "қарызға алу", "брать взаймы"), W("charging interest", "өсім (пайыз) алу", "начисление процентов")] },
+    { title: "Message (15)", words: [
+      W("by mistake", "байқамай, қателесіп", "по ошибке"), W("pick up (picked it up)", "алып кету", "взять, подобрать")] },
+    { title: "The lifetime of a mosquito (16)", words: [
+      W("stage", "кезең", "стадия"), W("hatch", "жұмыртқадан шығу", "вылупляться"), W("species", "түр", "вид"), W("lay eggs (lay their eggs)", "жұмыртқалау", "откладывать яйца"),
+      W("standing water", "тоқтау су", "стоячая вода"), W("marsh / swamp", "батпақ", "болото")] },
+    { title: "Gym sign (17)", words: [
+      W("changing room", "киім ауыстыратын бөлме", "раздевалка"), W("locker", "құлыпталатын шкаф", "шкафчик"), W("staff", "қызметкерлер", "персонал"),
+      W("remove", "алып кету", "убирать")] },
+    { title: "Sleep (18–20)", words: [
+      W("daily", "күнделікті", "ежедневно"), W("memory", "ес", "память"), W("alertness", "сергектік", "бодрость"), W("affect", "әсер ету", "влиять"),
+      W("newborn infant", "жаңа туған нәресте", "новорождённый"), W("teenager", "жасөспірім", "подросток"), W("pregnant", "жүкті", "беременная"),
+      W("elderly", "егде жастағы", "пожилой")] },
   ];
 
   const PASSAGES = {
@@ -351,7 +381,7 @@ window.EXAMS = {
       words: [W("by mistake", "байқамай, қателесіп", "по ошибке"), W("pick up", "алып кету", "взять, подобрать"), W("steal (stolen)", "ұрлау", "красть (украл)")] },
     { passage: "mosquito", q: "Where do mosquitoes lay their eggs?", options: ["In standing water.", "In marshes and swamps", "In fresh water.", "All of the above are correct."], answer: 3,
       explain: "The text names standing water, marshes and swamps, and fresh water.",
-      words: [W("lay eggs", "жұмыртқалау", "откладывать яйца"), W("hatch", "жұмыртқадан шығу", "вылупляться"), W("standing water", "тоқтау су", "стоячая вода"), W("marsh / swamp", "батпақ", "болото")] },
+      words: [W("lay eggs (lay their eggs)", "жұмыртқалау", "откладывать яйца"), W("hatch", "жұмыртқадан шығу", "вылупляться"), W("standing water", "тоқтау су", "стоячая вода"), W("marsh / swamp", "батпақ", "болото")] },
     { passage: "gym", q: "What does it say?", options: ["If staff find items on the floor, they will remove them away in a locker.", "You must use lockers only with the permission of staff.", "Lockers are regularly checked by staff."], answer: 0,
       explain: "“Staff will remove anything on floor.”",
       words: [W("changing room", "киім ауыстыратын бөлме", "раздевалка"), W("locker", "құлыпталатын шкаф", "шкафчик"), W("staff", "қызметкерлер", "персонал"), W("remove", "алып кету", "убирать")] },
@@ -384,17 +414,39 @@ window.EXAMS = {
  */
 (function () {
   const W = window.W;
+  // Тест алдындағы сөздік: мәтіндерде кездесетін сөздер, мәтін бойынша топталған (платформа құрастырған)
   const VOCAB = [
-    W("Repair", "Жөндеу жұмыстары", "Ремонт"),
-    W("Purpose", "Мақсат", "Цель"),
-    W("To predict", "Болжау", "Прогнозировать"),
-    W("Successful business", "Сәтті бизнес", "Успешный бизнес"),
-    W("Intensive", "Интенсивті, күшейтілген", "Интенсивный, усиленный"),
-    W("Refrigerator", "Тоңазытқыш", "Холодильник"),
-    W("Staff", "Қызметкер", "Сотрудник"),
-    W("Weather report", "Ауа райы болжамы", "Прогноз погоды"),
-    W("To introduce", "Таныстыру", "Представлять"),
-    W("Rapidly", "Өте жылдам", "Быстро"),
+    { title: "Message 1 (1)", words: [
+      W("outside", "сыртында", "снаружи, у входа"), W("text (v)", "SMS жазу", "написать сообщение"), W("be late", "кешігу", "опаздывать"), W("next", "келесі", "следующий")] },
+    { title: "School trip (2)", words: [
+      W("pupil", "оқушы", "ученик"), W("school trip", "мектеп саяхаты", "школьная поездка"), W("at the latest", "ең кешіктірмей", "не позднее")] },
+    { title: "Language courses (3–6)", words: [
+      W("level", "деңгей", "уровень"), W("skiing", "шаңғы тебу", "катание на лыжах"), W("full board", "толық тамақтану", "полный пансион"),
+      W("intensive", "қарқынды, күшейтілген", "интенсивный"), W("examination centre", "емтихан орталығы", "экзаменационный центр"),
+      W("short course", "қысқа курс", "краткий курс"), W("translation", "аударма", "перевод"), W("technical", "техникалық", "технический")] },
+    { title: "Bicycle shop (7)", words: [
+      W("repair", "жөндеу", "ремонт"), W("side entrance", "бүйір кіреберіс", "боковой вход"), W("front entrance", "алдыңғы кіреберіс", "главный вход"),
+      W("sales", "сауда", "продажа")] },
+    { title: "Label (8)", words: [
+      W("refrigerator", "тоңазытқыш", "холодильник"), W("after opening", "ашқаннан кейін", "после вскрытия"), W("within", "ішінде", "в течение")] },
+    { title: "Weather report (9–11)", words: [
+      W("weather report", "ауа райы болжамы", "прогноз погоды"), W("degree", "градус", "градус"), W("clear", "ашық (аспан)", "ясно"),
+      W("expect", "күту", "ожидать"), W("shower", "нөсер, қысқа жаңбыр", "ливень"), W("raining cats and dogs", "қатты жаңбыр жауу", "льёт как из ведра"),
+      W("umbrella", "қолшатыр", "зонт")] },
+    { title: "Message (12)", words: [
+      W("homework", "үй тапсырмасы", "домашнее задание"), W("leave (left)", "қалдыру (қалдырды)", "оставить (оставила)"), W("lend", "қарызға беру", "давать взаймы")] },
+    { title: "The Body Shop (13–15)", words: [
+      W("object / purpose", "мақсат", "цель"), W("earn", "табу (ақша)", "зарабатывать"), W("feed", "асырау", "кормить"), W("rapidly", "өте жылдам", "быстро"),
+      W("successful business", "сәтті бизнес", "успешный бизнес"), W("give up (giving up)", "бас тарту", "отказываться"), W("succeed", "табысқа жету", "добиться успеха"),
+      W("unexpected", "күтпеген", "неожиданный")] },
+    { title: "Norwich (16–17)", words: [
+      W("capital", "астана, орталық", "столица"), W("known as", "...деп аталатын", "известный как"), W("exist", "болу, өмір сүру", "существовать"),
+      W("village", "ауыл", "деревня"), W("beside", "жанында", "рядом с")] },
+    { title: "Food poisoning (18–19)", words: [
+      W("food poisoning", "тамақтан улану", "пищевое отравление"), W("staff", "қызметкерлер", "персонал"), W("a third", "үштен бір", "треть"),
+      W("stuck (struck) down", "ауырып қалу", "слечь (заболеть)"), W("hospitalized", "ауруханаға жатқызылған", "госпитализирован")] },
+    { title: "Swimming pool (20)", words: [
+      W("timetable", "кесте", "расписание"), W("reception", "қабылдау орны", "ресепшен"), W("details", "толық мәлімет", "подробности")] },
   ];
 
   const PASSAGES = {

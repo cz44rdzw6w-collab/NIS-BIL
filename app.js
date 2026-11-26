@@ -355,6 +355,21 @@
   const richText = (txt) => String(txt).split(/\n{2,}/).map((para) =>
     `<p>${esc(para).replace(/\n/g, "<br>").replace(/\*([^*]+)\*/g, "<u><b>$1</b></u>")}</p>`).join("");
 
+  // Сөздік топтармен ({ title, words }) немесе жай тізіммен берілуі мүмкін
+  const flatVocab = (vocab) => (vocab || []).reduce((all, g) => all.concat(g.words || [g]), []);
+  function vocabTable(vocab, streamId, t) {
+    if (!vocab.length || !vocab[0].words) return wordsTable(vocab, streamId, t);
+    return `
+      <div class="vocab-wrap"><table class="vocab vocab--grouped">
+        <thead><tr><th>${t.word}</th><th>${t.tr}</th></tr></thead>
+        ${vocab.map((g) => `
+        <tbody>
+          <tr class="vocab__group"><th colspan="2" lang="en">${esc(g.title)}</th></tr>
+          ${g.words.map((w) => `<tr><td lang="en">${esc(w.en)}</td><td>${esc(trOf(w, streamId))}</td></tr>`).join("")}
+        </tbody>`).join("")}
+      </table></div>`;
+  }
+
   function wordsTable(words, streamId, t) {
     return `
       <div class="vocab-wrap"><table class="vocab">
@@ -382,7 +397,7 @@
               ${tt.subtitle ? `<p>${esc(tt.subtitle)}</p>` : ""}
               ${tt.source ? `<p class="source">${t.source}: ${esc(tt.source)}</p>` : ""}
               <div class="progress"><span style="width:${pct}%"></span></div>
-              <div class="subject__meta"><span>${tt.vocab && tt.vocab.length ? `📖 ${tt.vocab.length} ${t.words}` : ""}</span><span>${v == null ? t.notYet : `${t.best}: ${v}/${tt.questions.length}`}</span></div>
+              <div class="subject__meta"><span>${tt.vocab && tt.vocab.length ? `📖 ${flatVocab(tt.vocab).length} ${t.words}` : ""}</span><span>${v == null ? t.notYet : `${t.best}: ${v}/${tt.questions.length}`}</span></div>
             </a>`;
         }).join("")}
       </div>`;
@@ -443,7 +458,7 @@
             <span class="eyebrow">${esc(test.title)}</span>
             <h2 class="vocab-title">${t.vocab}</h2>
             <p class="muted">${t.vocabHint}</p>
-            ${wordsTable(test.vocab, streamId, t)}
+            ${vocabTable(test.vocab, streamId, t)}
             ${test.source ? `<p class="source">${t.source}: ${esc(test.source)}</p>` : ""}
             <div class="quiz__nav"><button class="btn btn--primary" id="start">${t.start}</button></div>
           </div>
@@ -526,7 +541,7 @@
 
     function reviewHTML() {
       if (!mistakes.length) {
-        const all = test && test.vocab && test.vocab.length ? test.vocab : [];
+        const all = test ? flatVocab(test.vocab) : [];
         return `
           <section class="card review">
             <h3>${t.review}</h3>
