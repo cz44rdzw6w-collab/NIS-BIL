@@ -26,12 +26,12 @@
   function loadTracker(examId) {
     const all = read(TRACKER_KEY, {});
     const t = all[examId] || {};
-    // customDate: оқушы өзі таңдаған күн. Ол болмаса, ресми күн алынады.
-    return { date: t.customDate || EXAMS[examId].examDate, customDate: t.customDate || null, days: t.days || {}, todos: t.todos || [] };
+    // Емтихан күні тұрақты: тек data/tasks.js ішіндегі examDate алынады
+    return { date: EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [] };
   }
   function saveTracker(examId, data) {
     const all = read(TRACKER_KEY, {});
-    all[examId] = { customDate: data.customDate || null, days: data.days, todos: data.todos };
+    all[examId] = { days: data.days, todos: data.todos };
     write(TRACKER_KEY, all);
   }
 
@@ -195,7 +195,7 @@
         </div>
         <details><summary>НИШ пен БИЛ емтихандарының айырмашылығы неде?</summary><p>НИШ емтиханы қазақ немесе орыс тілінде өтеді және алты бағытты қамтиды. БИЛ емтиханы қазақ тілінде өтеді: математика, логика және қазақ тілі.</p></details>
         <details><summary>Тіркелу керек пе?</summary><p>Жоқ. Тапсырмаларды бірден шеше бересің, нәтижелерің мен трекерің осы құрылғыдағы браузерде сақталады.</p></details>
-        <details><summary>Емтихан күнін өзгертуге бола ма?</summary><p>Иә. Трекер бетінде «Емтихан күні» өрісінен өз күніңді таңдасаң, таймер соған қарай санайды.</p></details>
+        <details><summary>Емтихан қашан өтеді?</summary><p>НИШ емтиханы: ${humanDate(EXAMS.nis.examDate)}. БИЛ емтиханы: ${humanDate(EXAMS.bil.examDate)}. Таймерлер осы күндерге қарай санайды.</p></details>
       </section>
 
       <section class="section">
@@ -477,13 +477,13 @@
               <span class="eyebrow">${esc(exam.full)}</span>
               <h2>Емтиханға дейін</h2>
             </div>
-            <label class="date-field" for="exam-date-${examId}">
+            <div class="date-field">
               <span>Емтихан күні</span>
-              <input type="date" id="exam-date-${examId}" value="${data.date}">
-            </label>
+              <strong class="date-badge">📅 ${humanDate(data.date)}</strong>
+            </div>
           </div>
           ${countdownHTML(data.date, true)}
-          <p class="tracker-hero__note">${humanDate(data.date)}, сағат 09:00${data.customDate ? ` · өзің таңдаған күн (ресми күн: ${humanDate(exam.examDate)})` : ""}</p>
+          <p class="tracker-hero__note">${humanDate(data.date)}, сағат 09:00</p>
         </section>
 
         <div class="grid grid--2 tracker-grid">
@@ -515,13 +515,6 @@
     }
 
     function bind() {
-      app.querySelector(`#exam-date-${examId}`).addEventListener("change", (e) => {
-        if (!e.target.value) return;
-        data.date = e.target.value;
-        data.customDate = data.date === exam.examDate ? null : data.date;
-        saveTracker(examId, data);
-        draw();
-      });
       app.querySelector("#mark-today").addEventListener("click", () => {
         const k = dayKey(new Date());
         if (data.days[k]) delete data.days[k]; else data.days[k] = true;
