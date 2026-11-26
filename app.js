@@ -321,6 +321,22 @@
 
     const backHref = `#${examId}-${streamId}`;
     let index = 0;
+    // Жауап нұсқаларын әр тест сайын араластырамыз, дұрыс жауап әрдайым бір орында тұрмасын.
+    // «Сандық сипаттамаларда» нұсқалар реті тұрақты (А үлкен / B үлкен / Тең / ...), сондықтан араластырмаймыз.
+    const keepOrder = subjectId === "quant";
+    function prepare() {
+      return subject.questions.map((q) => {
+        const order = q.options.map((_, i) => i);
+        if (!keepOrder && !q.fixedOrder) {
+          for (let i = order.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            const tmp = order[i]; order[i] = order[j]; order[j] = tmp;
+          }
+        }
+        return Object.assign({}, q, { options: order.map((i) => q.options[i]), answer: order.indexOf(q.answer) });
+      });
+    }
+    let questions = prepare();
     let correct = 0;
     const letters = ["A", "B", "C", "D", "E"];
 
@@ -328,7 +344,7 @@
       `<div class="breadcrumbs"><a href="#tasks">Тапсырмалар</a> / <a href="${backHref}">${esc(exam.title)} · ${esc(stream.label)}</a> / ${esc(subject.title)}</div>`;
 
     function showQuestion() {
-      const item = subject.questions[index];
+      const item = questions[index];
       const pct = Math.round((index / subject.questions.length) * 100);
       app.innerHTML = `
         ${header()}
@@ -393,7 +409,7 @@
             </div>
           </div>
         </div>`;
-      app.querySelector("#again").addEventListener("click", () => { index = 0; correct = 0; showQuestion(); });
+      app.querySelector("#again").addEventListener("click", () => { index = 0; correct = 0; questions = prepare(); showQuestion(); });
     }
 
     showQuestion();
