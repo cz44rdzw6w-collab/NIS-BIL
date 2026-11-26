@@ -28,7 +28,7 @@
     const all = read(TRACKER_KEY, {});
     const t = all[examId] || {};
     // Емтихан күні тұрақты: тек data/tasks.js ішіндегі examDate алынады
-    return { date: EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [], ubs: t.ubs || [], week: trimWeek(t.week || {}) };
+    return { date: EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [], ubs: t.ubs || [], week: trimWeek(t.week || {}), done: t.done || {} };
   }
   function trimWeek(week) {
     const out = {};
@@ -37,7 +37,7 @@
   }
   function saveTracker(examId, data) {
     const all = read(TRACKER_KEY, {});
-    all[examId] = { days: data.days, todos: data.todos, ubs: data.ubs, week: data.week };
+    all[examId] = { days: data.days, todos: data.todos, ubs: data.ubs, week: data.week, done: data.done };
     write(TRACKER_KEY, all);
   }
 
@@ -580,14 +580,57 @@
       return r.length > 1 ? r[0].id : null;
     }
 
+    // Осы аптадағы i-ші күннің күні (0 = дүйсенбі)
+    function dateOfWeekday(i) {
+      const d = new Date();
+      d.setDate(d.getDate() - todayIdx + i);
+      return dayKey(d);
+    }
+
+    function todayHTML() {
+      const todayKey = dayKey(new Date());
+      const picked = data.week[todayIdx] || [];
+      const done = data.done[todayKey] || [];
+      if (!picked.length) {
+        return `
+          <div class="today-goals">
+            <div class="today-goals__head"><strong>Бүгінгі мақсаттар · ${DAY_NAMES[todayIdx]}</strong></div>
+            <p class="today-goals__empty">Бүгінге пән таңдалмаған. Төменнен «${DAY_NAMES[todayIdx]}» күнін ашып, пән таңда.</p>
+          </div>`;
+      }
+      const n = picked.filter((id) => done.includes(id)).length;
+      const all = n === picked.length;
+      return `
+        <div class="today-goals ${all ? "is-complete" : ""}">
+          <div class="today-goals__head">
+            <strong>Бүгінгі мақсаттар · ${DAY_NAMES[todayIdx]}</strong>
+            <span class="chip">${n}/${picked.length} орындалды</span>
+          </div>
+          <div class="today-goals__list">
+            ${picked.map((id) => {
+              const sj = subjectById(id); if (!sj) return "";
+              const ok = done.includes(id);
+              return `
+                <button class="today-item ${ok ? "is-done" : ""}" data-done-subj="${id}" aria-pressed="${ok}">
+                  <span class="subject__icon ${sj.color}">${sj.icon}</span>
+                  <span class="today-item__title">${esc(sj.title)}</span>
+                  <span class="today-item__state">${ok ? "✓ Орындадым" : "Белгілеу"}</span>
+                </button>`;
+            }).join("")}
+          </div>
+          ${all ? `<p class="today-goals__win">🎉 Бүгінгі мақсаттар орындалды! Күнтізбеде белгіленді.</p>` : ""}
+        </div>`;
+    }
+
     function weekHTML() {
       const weak = weakestId();
       const total = Object.values(data.week).reduce((n, d) => n + d.length, 0);
       const days = DAY_NAMES.map((name, i) => {
         const picked = data.week[i] || [];
         const open = i === openDay;
+        const doneThatDay = i <= todayIdx ? (data.done[dateOfWeekday(i)] || []) : [];
         const tags = picked.length
-          ? picked.map((id) => { const s = subjectById(id); return s ? `<span class="day__tag">${s.icon} ${esc(s.title)}</span>` : ""; }).join("")
+          ? picked.map((id) => { const s = subjectById(id); const ok = doneThatDay.includes(id); return s ? `<span class="day__tag ${ok ? "is-done" : ""}">${ok ? "✓ " : ""}${s.icon} ${esc(s.title)}</span>` : ""; }).join("")
           : `<span class="day__none">Пән таңдалмаған</span>`;
         const full = picked.length >= MAX_PER_DAY;
         const body = open ? `
@@ -619,6 +662,7 @@
         <section class="card weekplan" id="weekplan">
           <div class="card__title"><h3>Мақсаттар</h3>${total ? `<span class="chip">аптасына ${total} сабақ</span>` : ""}</div>
           <p class="muted">Аптаның әр күнін бас та, сол күні дайындалатын пәндерді белгіле: күніне ең көбі ${MAX_PER_DAY} пән. Мақсатыңды куратормен ақылдасып құр.</p>
+          ${todayHTML()}
           <div class="days">${days}</div>
         </section>`;
     }
@@ -780,6 +824,18 @@
       if (goWeek) goWeek.addEventListener("click", () =>
         app.querySelector("#weekplan").scrollIntoView({ behavior: "smooth", block: "start" }));
 
+      app.querySelectorAll("[data-done-subj]").forEach((b) => b.addEventListener("click", () => {
+        const k = dayKey(new Date());
+        const id = b.dataset.doneSubj;
+        const set = new Set(data.done[k] || []);
+        if (set.has(id)) set.delete(id); else set.add(id);
+        data.done[k] = [...set];
+        if (!data.done[k].length) delete data.done[k];
+        const picked = data.week[todayIdx] || [];
+        if (picked.length && picked.every((x) => set.has(x))) data.days[k] = true; // бәрі орындалса, күнтізбеде белгілейміз
+        saveTracker(examId, data);
+        draw();
+      }));
       app.querySelectorAll("[data-open-day]").forEach((b) => b.addEventListener("click", () => {
         const i = Number(b.dataset.openDay);
         openDay = openDay === i ? -1 : i;
