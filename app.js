@@ -176,7 +176,7 @@
         <div class="grid grid--3">
           <div class="card feature"><i class="ic-bur">🎯</i><h3>Емтихан форматы</h3><p>Тапсырмалар нақты емтихан құрылымына сай пән бойынша топтастырылған.</p></div>
           <div class="card feature"><i class="ic-oli">💡</i><h3>Түсіндірмелер</h3><p>Әр сұрақтан кейін дұрыс жауап пен қысқаша шешім көрсетіледі.</p></div>
-          <div class="card feature"><i class="ic-lav">📅</i><h3>Трекер және жоспар</h3><p>ҮБС нәтижеңді енгіз: әлсіз пәніңді тауып, апталық жеке жоспар құрып береді.</p></div>
+          <div class="card feature"><i class="ic-lav">📅</i><h3>Трекер және ҮБС талдауы</h3><p>ҮБС нәтижеңді енгіз: әлсіз пәніңді көрсетеді, ал мақсатты куратормен бірге өзің құрасың.</p></div>
         </div>
       </section>
 
@@ -395,8 +395,7 @@
     return { pct, tried };
   }
 
-  /* ---------- ҮБС талдауы және жеке жоспар ---------- */
-  const DAY_NAMES = ["Дүйсенбі", "Сейсенбі", "Сәрсенбі", "Бейсенбі", "Жұма", "Сенбі", "Жексенбі"];
+  /* ---------- ҮБС талдауы және мотивация ---------- */
 
   // ҮБС жазбасынан пән бойынша пайыздарды есептейді: { subjectId: pct }
   function ubsPercents(entry) {
@@ -431,24 +430,12 @@
     else if (delta != null && delta < 0) lines.push(`Өткен жолдан ${Math.abs(delta)}% төмендедің. Уайымдама: бұл қай жерге көңіл бөлу керегін көрсетеді.`);
     else if (delta === 0) lines.push("Нәтижең тұрақты. Енді келесі деңгейге көтерілу уақыты.");
     const best = ranked[ranked.length - 1];
-    if (ranked.length > 1) lines.push(`Ең мықты пәнің: ${best.title} (${cur[best.id]}%). Оны апта соңындағы аралас тестте ұстап тұр.`);
+    if (ranked.length > 1) lines.push(`Ең мықты пәнің: ${best.title} (${cur[best.id]}%). Бұл деңгейді сақта.`);
     if (daysLeft > 0) lines.push(`Емтиханға ${daysLeft} күн (шамамен ${Math.ceil(daysLeft / 7)} апта) қалды. Әр апта маңызды.`);
 
     const W = ranked[0];
-    const S = ranked[1] || W;
-    const O = ranked[2] || S;
-    const task = (s) => {
-      const lvl = levelOf(cur[s.id]);
-      return lvl === "low" ? "Негізгі тақырыптарды қайталау + 15 жеңіл тапсырма"
-        : lvl === "mid" ? "ҮБС-тағы қателерді талдау + 20 тапсырма"
-        : "Күрделі тапсырмалар + уақытпен шағын тест";
-    };
-    const slot = (s, min) => ({ subject: s, minutes: min, text: task(s) });
-    const week = [slot(W, 60), slot(S, 45), slot(W, 60), slot(O, 30), slot(W, 60), slot(S, 45), { subject: null, minutes: 60, text: "Барлық пәннен аралас сынақ тест + апталық қателерді талдау" }];
-
-    return { headline: cap(headline), lines, weakest: W, weakPct: cur[W.id], ranked, cur, avg, delta, week };
+    return { headline: cap(headline), lines, weakest: W, weakPct: cur[W.id], ranked, cur, avg, delta };
   }
-
   function renderTracker(examId) {
     const exam = EXAMS[examId];
     const data = loadTracker(examId);
@@ -456,6 +443,7 @@
     let view = new Date(); view.setDate(1);
     let editingName = !profile.name;
     let pendingDelete = null;
+    let goalSubject = null;
 
     const firstStream = Object.values(exam.streams)[0];
     const defaultStream = Object.keys(exam.streams)[0];
@@ -549,39 +537,31 @@
       if (!plan) {
         return `
           <section class="card plan plan--empty">
-            <div class="card__title"><h3>Жеке жоспар</h3></div>
-            <p class="empty">ҮБС нәтижесін енгізгеннен кейін осы жерде саған арналған мотивация мен апталық жоспар пайда болады.</p>
+            <div class="card__title"><h3>Талдау және мотивация</h3></div>
+            <p class="empty">ҮБС нәтижесін енгізгеннен кейін осы жерде нәтижеңнің талдауы мен мотивация пайда болады.</p>
           </section>`;
       }
-      const today = (new Date().getDay() + 6) % 7;
       return `
         <section class="card plan">
+          <div class="card__title"><h3>Талдау және мотивация</h3></div>
           <div class="motivation">
             <p class="motivation__head">${esc(plan.headline)}</p>
             <ul>${plan.lines.map((l) => `<li>${esc(l)}</li>`).join("")}</ul>
             <div class="focus">
               <span class="subject__icon ${plan.weakest.color}">${plan.weakest.icon}</span>
-              <div><span>Осы аптаның басты пәні</span><strong>${esc(plan.weakest.title)} · ${plan.weakPct}%</strong></div>
-              <a class="btn btn--primary" href="#quiz-${examId}-${defaultStream}-${plan.weakest.id}">Қазір бастау →</a>
+              <div><span>Көбірек көңіл бөлетін пән</span><strong>${esc(plan.weakest.title)} · ${plan.weakPct}%</strong></div>
+              <a class="btn btn--primary" href="#quiz-${examId}-${defaultStream}-${plan.weakest.id}">Тапсырмалар →</a>
             </div>
           </div>
-          <div class="card__title"><h3>Апталық жоспар</h3><button class="chip chip--btn" id="plan-to-todos">Мақсаттарға қосу</button></div>
-          <ol class="week">
-            ${plan.week.map((d, i) => `
-              <li class="${i === today ? "is-today" : ""} ${d.subject === plan.weakest ? "is-focus" : ""}">
-                <span class="week__day">${DAY_NAMES[i]}${i === today ? " · бүгін" : ""}</span>
-                <span class="week__main"><strong>${d.subject ? `${d.subject.icon} ${esc(d.subject.title)}` : "🧪 Аралас тест"}</strong><span>${esc(d.text)}</span></span>
-                <span class="week__min">${d.minutes} мин</span>
-              </li>`).join("")}
-          </ol>
+          <div class="curator-tip">
+            <span aria-hidden="true">🤝</span>
+            <div>
+              <strong>Мақсатыңды куратормен бірге құр</strong>
+              <p>ҮБС нәтижеңді куратормен қарап шығып, осы аптаға не істейтініңді бірге шешіңдер. Сосын мақсатты төмендегі «Мақсаттар» бөліміне жаз.</p>
+              <button class="chip chip--btn" id="go-goals">Мақсат құру ↓</button>
+            </div>
+          </div>
         </section>`;
-    }
-
-    function planTodos() {
-      const latest = data.ubs[data.ubs.length - 1];
-      const plan = latest && buildPlan(subjects, latest, data.ubs[data.ubs.length - 2], "", 0);
-      if (!plan) return [];
-      return plan.week.map((d, i) => `${DAY_NAMES[i]}: ${d.subject ? d.subject.title : "Аралас тест"}, ${d.minutes} мин`);
     }
 
     function calendarHTML() {
@@ -622,12 +602,20 @@
     }
 
     function todosHTML() {
-      if (!data.todos.length) return `<p class="empty">Әзірге мақсат жоқ. Мысалы: «Логикадан 10 есеп шығару» деп жазып қос.</p>`;
-      return `<ul class="todos">${data.todos.map((t, i) => `
+      if (!data.todos.length) return `<p class="empty">Әзірге мақсат жоқ. Куратормен ақылдасып, бірінші мақсатыңды жаз.</p>`;
+      return `<ul class="todos">${data.todos.map((t, i) => {
+        const subj = t.subject && subjectById(t.subject);
+        return `
         <li class="${t.done ? "is-done" : ""}">
-          <label><input type="checkbox" data-todo="${i}" ${t.done ? "checked" : ""}><span>${esc(t.text)}</span></label>
+          <label><input type="checkbox" data-todo="${i}" ${t.done ? "checked" : ""}>
+            <span class="todo__body">
+              ${subj || t.curator ? `<span class="todo__tags">${subj ? `<span class="todo__tag">${subj.icon} ${esc(subj.title)}</span>` : ""}${t.curator ? `<span class="todo__tag todo__tag--cur">✓ Куратормен келісілді</span>` : ""}</span>` : ""}
+              <span class="todo__text">${esc(t.text)}</span>
+            </span>
+          </label>
           <button class="todo__del" data-del="${i}" aria-label="Өшіру">✕</button>
-        </li>`).join("")}</ul>`;
+        </li>`;
+      }).join("")}</ul>`;
     }
 
     function subjectsHTML() {
@@ -647,6 +635,12 @@
     }
 
     function draw() {
+      const lastUbs = data.ubs[data.ubs.length - 1];
+      if (goalSubject === null && lastUbs) {
+        const cur = ubsPercents(lastUbs);
+        const r = subjects.filter((s) => cur[s.id] != null).sort((a, b) => cur[a.id] - cur[b.id]);
+        if (r.length) goalSubject = r[0].id;
+      }
       const doneTodos = data.todos.filter((t) => t.done).length;
       app.innerHTML = `
         <div class="breadcrumbs"><a href="#home">Басты бет</a> / Трекер / ${esc(exam.title)}</div>
@@ -689,11 +683,19 @@
             <div class="cal">${calendarHTML()}</div>
           </section>
 
-          <section class="card">
+          <section class="card goals" id="goals">
             <div class="card__title"><h3>Мақсаттар</h3><span class="chip">${doneTodos}/${data.todos.length}</span></div>
-            <form class="todo-form" id="todo-form">
-              <input type="text" id="todo-input-${examId}" placeholder="Жаңа мақсат…" maxlength="120" autocomplete="off">
-              <button class="btn btn--olive" type="submit">Қосу</button>
+            <p class="muted">Мақсатты өзің құр, куратормен ақылдасып.</p>
+            <form class="goal-form" id="todo-form">
+              <select id="todo-subject-${examId}" aria-label="Пән">
+                <option value="">Жалпы мақсат</option>
+                ${subjects.map((s) => `<option value="${s.id}" ${s.id === goalSubject ? "selected" : ""}>${s.icon} ${esc(s.title)}</option>`).join("")}
+              </select>
+              <input type="text" id="todo-input-${examId}" placeholder="Мысалы: ҮБС-тағы қателерді талдау" maxlength="120" autocomplete="off">
+              <div class="goal-form__row">
+                <label class="check" for="todo-curator-${examId}"><input type="checkbox" id="todo-curator-${examId}"> Куратормен келісілді</label>
+                <button class="btn btn--olive" type="submit">Қосу</button>
+              </div>
             </form>
             ${todosHTML()}
           </section>
@@ -754,13 +756,10 @@
         draw();
         const h = app.querySelector(".history"); if (h && data.ubs.length) h.open = true;
       }));
-      const toTodos = app.querySelector("#plan-to-todos");
-      if (toTodos) toTodos.addEventListener("click", () => {
-        const existing = new Set(data.todos.map((t) => t.text));
-        planTodos().forEach((text) => { if (!existing.has(text)) data.todos.push({ text, done: false }); });
-        saveTracker(examId, data);
-        draw();
-        app.querySelector("#todo-form").scrollIntoView({ behavior: "smooth", block: "center" });
+      const goGoals = app.querySelector("#go-goals");
+      if (goGoals) goGoals.addEventListener("click", () => {
+        app.querySelector("#goals").scrollIntoView({ behavior: "smooth", block: "start" });
+        setTimeout(() => app.querySelector(`#todo-input-${examId}`).focus({ preventScroll: true }), 400);
       });
 
       app.querySelector("#mark-today").addEventListener("click", () => {
@@ -784,7 +783,10 @@
         const input = app.querySelector(`#todo-input-${examId}`);
         const text = input.value.trim();
         if (!text) return;
-        data.todos.push({ text, done: false });
+        const subject = app.querySelector(`#todo-subject-${examId}`).value || null;
+        const curator = app.querySelector(`#todo-curator-${examId}`).checked;
+        goalSubject = subject || "";
+        data.todos.push({ text, done: false, subject, curator });
         saveTracker(examId, data);
         draw();
         app.querySelector(`#todo-input-${examId}`).focus();
