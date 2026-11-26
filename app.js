@@ -421,7 +421,14 @@
       });
     }
     let questions = prepare();
-    let index = 0;
+    // Кітаптағыдай: бір мәтінге қатысты қатар тұрған сұрақтар бір бетте, мәтін бір рет беріледі
+    const groups = [];
+    questions.forEach((q, i) => {
+      const last = groups[groups.length - 1];
+      if (q.passage && last && last.passage === q.passage) last.items.push(i);
+      else groups.push({ passage: q.passage, items: [i] });
+    });
+    let index = 0; // топтың нөмірі
     let correct = 0;
     let mistakes = [];
 
@@ -441,59 +448,78 @@
             <div class="quiz__nav"><button class="btn btn--primary" id="start">${t.start}</button></div>
           </div>
         </div>`;
-      app.querySelector("#start").addEventListener("click", () => { showQuestion(); window.scrollTo(0, 0); });
+      app.querySelector("#start").addEventListener("click", () => { showGroup(); window.scrollTo(0, 0); });
     }
 
-    function showQuestion() {
-      const item = questions[index];
-      const pct = Math.round((index / total) * 100);
-      const passage = item.passage && passages[item.passage];
+    function showGroup() {
+      const grp = groups[index];
+      const first = grp.items[0] + 1, last = grp.items[grp.items.length - 1] + 1;
+      const passage = grp.passage && passages[grp.passage];
+      const pct = Math.round((grp.items[0] / total) * 100);
+      const isLast = index === groups.length - 1;
+      const intro = !passage ? ""
+        : grp.items.length > 1 ? `Questions ${first}–${last} are related to the text below.`
+        : passage.kind ? "" : `Question ${first} is related to the text below.`;
       app.innerHTML = `
         ${header()}
         <div class="quiz">
           <div class="quiz__top">
             <span>${subject.icon} ${esc(test ? `${subject.title} · ${test.title}` : subject.title)}</span>
-            <span>${t.q} ${index + 1} / ${total}</span>
+            <span>${t.q} ${first === last ? first : `${first}–${last}`} / ${total}</span>
           </div>
           <div class="progress" style="margin-bottom:18px"><span style="width:${pct}%"></span></div>
-          ${passage ? `
-          <article class="card passage passage--${passage.kind || "text"}" lang="en">
-            <span class="passage__label">${passage.kind === "notice" ? "📌" : passage.kind === "message" ? "✉️" : "📄"} ${t.passage}</span>
-            ${passage.title ? `<h3>${esc(passage.title)}</h3>` : ""}
-            <div class="passage__text">${richText(passage.text)}</div>
-          </article>` : ""}
           <div class="card quiz__card">
-            ${item.q ? `<p class="quiz__q">${esc(item.q)}</p>` : ""}
-            <div class="options">
-              ${item.options.map((o, i) => `<button class="option" data-i="${i}"><b>${LETTERS[i]}</b>${esc(o)}</button>`).join("")}
-            </div>
-            <div id="feedback"></div>
+            ${passage ? `
+            ${intro ? `<p class="passage__intro" lang="en">${intro}</p>` : ""}
+            <article class="passage passage--${passage.kind || "text"}" lang="en">
+              ${passage.title ? `<h3>${esc(passage.title)}</h3>` : ""}
+              <div class="passage__text">${richText(passage.text)}</div>
+            </article>` : ""}
+            ${grp.items.map((qi) => {
+              const item = questions[qi];
+              return `
+              <div class="qblock" ${test ? 'lang="en"' : ""}>
+                <p class="quiz__q">${test ? `<span class="qnum">${qi + 1}.</span> ` : ""}${esc(item.q || "")}</p>
+                <div class="options">
+                  ${item.options.map((o, i) => `<button class="option" data-q="${qi}" data-i="${i}"><b>${LETTERS[i]}</b>${esc(o)}</button>`).join("")}
+                </div>
+                <div class="feedback" id="feedback-${qi}"></div>
+              </div>`;
+            }).join("")}
             <div class="quiz__nav">
-              <button class="btn btn--primary" id="next" disabled>${index === total - 1 ? t.finish : t.next}</button>
+              <button class="btn btn--primary" id="next" disabled>${isLast ? t.finish : t.next}</button>
             </div>
           </div>
         </div>`;
 
-      const buttons = app.querySelectorAll(".option");
-      buttons.forEach((btn) => btn.addEventListener("click", () => {
-        const chosen = Number(btn.dataset.i);
-        const ok = chosen === item.answer;
-        if (ok) correct++;
-        else mistakes.push({ n: index + 1, item, chosen });
-        buttons.forEach((b) => {
-          b.disabled = true;
-          const i = Number(b.dataset.i);
-          if (i === item.answer) b.classList.add("correct");
-          else if (i === chosen) b.classList.add("wrong");
-        });
-        app.querySelector("#feedback").innerHTML =
-          `<div class="explain ${ok ? "" : "bad"}"><strong>${ok ? t.right : t.wrong}</strong> ${esc(item.explain || "")}</div>`;
-        app.querySelector("#next").disabled = false;
-      }));
+      let answered = 0;
+      grp.items.forEach((qi) => {
+        const item = questions[qi];
+        const buttons = app.querySelectorAll(`.option[data-q="${qi}"]`);
+        buttons.forEach((btn) => btn.addEventListener("click", () => {
+          const chosen = Number(btn.dataset.i);
+          const ok = chosen === item.answer;
+          if (ok) correct++;
+          else mistakes.push({ n: qi + 1, item, chosen });
+          buttons.forEach((b) => {
+            b.disabled = true;
+            const i = Number(b.dataset.i);
+            if (i === item.answer) b.classList.add("correct");
+            else if (i === chosen) b.classList.add("wrong");
+          });
+          // Тестте түсіндірме соңында «Қатемен жұмыс» бөлімінде беріледі
+          if (!test) {
+            app.querySelector(`#feedback-${qi}`).innerHTML =
+              `<div class="explain ${ok ? "" : "bad"}"><strong>${ok ? t.right : t.wrong}</strong> ${esc(item.explain || "")}</div>`;
+          }
+          answered++;
+          if (answered === grp.items.length) app.querySelector("#next").disabled = false;
+        }));
+      });
 
       app.querySelector("#next").addEventListener("click", () => {
         index++;
-        if (index < total) { showQuestion(); if (passage || (questions[index] && questions[index].passage)) window.scrollTo(0, 0); }
+        if (index < groups.length) { showGroup(); window.scrollTo(0, 0); }
         else showResult();
       });
     }
@@ -513,7 +539,7 @@
           <h3>${t.review} <span class="chip">${mistakes.length}</span></h3>
           <p class="muted">${t.reviewHint}</p>
           <ol class="review__list">
-            ${mistakes.map((m) => {
+            ${mistakes.slice().sort((a, b) => a.n - b.n).map((m) => {
               const words = m.item.words || [];
               const passage = m.item.passage && passages[m.item.passage];
               return `
@@ -556,12 +582,12 @@
       window.scrollTo(0, 0);
       app.querySelector("#again").addEventListener("click", () => {
         index = 0; correct = 0; mistakes = []; questions = prepare();
-        if (test && test.vocab && test.vocab.length) showVocab(); else showQuestion();
+        if (test && test.vocab && test.vocab.length) showVocab(); else showGroup();
         window.scrollTo(0, 0);
       });
     }
 
-    if (test && test.vocab && test.vocab.length) showVocab(); else showQuestion();
+    if (test && test.vocab && test.vocab.length) showVocab(); else showGroup();
   }
 
   /* ================= Трекер (НИШ және БИЛ бөлек) ================= */

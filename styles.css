@@ -455,7 +455,12 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 /* ---------- Tests, passages, vocab, error review ---------- */
 .test-card__head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
 .test-card__head h3 { margin: 0; color: var(--burgundy); }
-.passage { margin-bottom: 14px; border-left: 5px solid var(--lavender-deep); }
+.passage { margin-bottom: 18px; padding: 0 0 16px; border-bottom: 1px solid var(--border); }
+.card .passage__intro { margin: 0 0 10px; font-weight: 800; color: var(--text); }
+.qblock { padding: 4px 0 18px; }
+.qblock + .qblock { border-top: 1px dashed var(--border); padding-top: 18px; }
+.qnum { color: var(--burgundy); }
+.feedback:empty { display: none; }
 .passage__label { display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--lavender-deep); margin-bottom: 6px; }
 .passage h3 { margin: 0 0 8px; color: var(--burgundy); }
 .passage__text p { margin: 0 0 10px; color: var(--text); font-size: 16px; line-height: 1.65; max-width: 65ch; }
