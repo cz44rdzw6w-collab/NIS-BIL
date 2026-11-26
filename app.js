@@ -26,11 +26,12 @@
   function loadTracker(examId) {
     const all = read(TRACKER_KEY, {});
     const t = all[examId] || {};
-    return { date: t.date || EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [] };
+    // customDate: оқушы өзі таңдаған күн. Ол болмаса, ресми күн алынады.
+    return { date: t.customDate || EXAMS[examId].examDate, customDate: t.customDate || null, days: t.days || {}, todos: t.todos || [] };
   }
   function saveTracker(examId, data) {
     const all = read(TRACKER_KEY, {});
-    all[examId] = data;
+    all[examId] = { customDate: data.customDate || null, days: data.days, todos: data.todos };
     write(TRACKER_KEY, all);
   }
 
@@ -482,7 +483,7 @@
             </label>
           </div>
           ${countdownHTML(data.date, true)}
-          <p class="tracker-hero__note">${humanDate(data.date)}, сағат 09:00${data.date === exam.examDate ? " · болжамды күн, нақты күнді өзің таңдай аласың" : ""}</p>
+          <p class="tracker-hero__note">${humanDate(data.date)}, сағат 09:00${data.customDate ? ` · өзің таңдаған күн (ресми күн: ${humanDate(exam.examDate)})` : ""}</p>
         </section>
 
         <div class="grid grid--2 tracker-grid">
@@ -517,6 +518,7 @@
       app.querySelector(`#exam-date-${examId}`).addEventListener("change", (e) => {
         if (!e.target.value) return;
         data.date = e.target.value;
+        data.customDate = data.date === exam.examDate ? null : data.date;
         saveTracker(examId, data);
         draw();
       });
