@@ -342,13 +342,13 @@
       vocab: "Тест алдында мына сөздерді үйрен", vocabHint: "Бұл сөздер тестте кездеседі. Жаттап алып, тестті баста.", start: "Тестті бастау →",
       skipVocab: "Сөздікті өткізу", word: "Сөз", tr: "Аудармасы", passage: "Мәтінді оқып, сұраққа жауап бер", review: "Қатемен жұмыс",
       reviewHint: "Қате жауап берген сұрақтарыңды қайта қарап шық.", yours: "Сенің жауабың", correctIs: "Дұрыс жауап",
-      hard: "Күрделі сөздер", noMistakes: "Бірде-бір қате жоқ! Керемет! 🎉", allWords: "Тесттегі сөздер", toTests: "Тесттерге оралу" },
+      hard: "Күрделі сөздер", words: "сөз", source: "Дереккөз", noMistakes: "Бірде-бір қате жоқ! Керемет! 🎉", allWords: "Тесттегі сөздер", toTests: "Тесттерге оралу" },
     ru: { q: "Вопрос", next: "Следующий →", finish: "Завершить", right: "Верно!", wrong: "Неверно.", again: "Пройти снова", back: "К предметам",
       done: "Тест завершён", score: "Правильных ответов", tests: "Выбери тест", questions: "вопросов", best: "Лучший результат", notYet: "Ещё не решён",
       vocab: "Перед тестом выучи эти слова", vocabHint: "Эти слова встретятся в тесте. Выучи их и начинай.", start: "Начать тест →",
       skipVocab: "Пропустить словарь", word: "Слово", tr: "Перевод", passage: "Прочитай текст и ответь на вопрос", review: "Работа над ошибками",
       reviewHint: "Разбери вопросы, в которых ты ошибся.", yours: "Твой ответ", correctIs: "Правильный ответ",
-      hard: "Сложные слова", noMistakes: "Ни одной ошибки! Отлично! 🎉", allWords: "Слова из теста", toTests: "К списку тестов" },
+      hard: "Сложные слова", words: "слов", source: "Источник", noMistakes: "Ни одной ошибки! Отлично! 🎉", allWords: "Слова из теста", toTests: "К списку тестов" },
   };
   const trOf = (w, streamId) => (streamId === "ru" ? w.ru : w.kz);
   // Мәтінді абзацтарға бөледі; *сөз* курсивпен/астын сызып белгіленеді
@@ -380,8 +380,9 @@
             <a class="card subject test-card" href="#quiz-${examId}-${streamId}-${subject.id}-${tt.id}">
               <div class="test-card__head"><h3>${esc(tt.title)}</h3><span class="chip">${tt.questions.length} ${t.questions}</span></div>
               ${tt.subtitle ? `<p>${esc(tt.subtitle)}</p>` : ""}
+              ${tt.source ? `<p class="source">${t.source}: ${esc(tt.source)}</p>` : ""}
               <div class="progress"><span style="width:${pct}%"></span></div>
-              <div class="subject__meta"><span>${tt.vocab && tt.vocab.length ? `📖 ${tt.vocab.length} сөз` : ""}</span><span>${v == null ? t.notYet : `${t.best}: ${v}/${tt.questions.length}`}</span></div>
+              <div class="subject__meta"><span>${tt.vocab && tt.vocab.length ? `📖 ${tt.vocab.length} ${t.words}` : ""}</span><span>${v == null ? t.notYet : `${t.best}: ${v}/${tt.questions.length}`}</span></div>
             </a>`;
         }).join("")}
       </div>`;
@@ -436,6 +437,7 @@
             <h2 class="vocab-title">${t.vocab}</h2>
             <p class="muted">${t.vocabHint}</p>
             ${wordsTable(test.vocab, streamId, t)}
+            ${test.source ? `<p class="source">${t.source}: ${esc(test.source)}</p>` : ""}
             <div class="quiz__nav"><button class="btn btn--primary" id="start">${t.start}</button></div>
           </div>
         </div>`;
@@ -455,8 +457,8 @@
           </div>
           <div class="progress" style="margin-bottom:18px"><span style="width:${pct}%"></span></div>
           ${passage ? `
-          <article class="card passage" lang="en">
-            <span class="passage__label">📄 ${t.passage}</span>
+          <article class="card passage passage--${passage.kind || "text"}" lang="en">
+            <span class="passage__label">${passage.kind === "notice" ? "📌" : passage.kind === "message" ? "✉️" : "📄"} ${t.passage}</span>
             ${passage.title ? `<h3>${esc(passage.title)}</h3>` : ""}
             <div class="passage__text">${richText(passage.text)}</div>
           </article>` : ""}

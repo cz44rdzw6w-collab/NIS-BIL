@@ -320,7 +320,131 @@ window.EXAMS = {
     const s = subj(stream);
     s.questions.forEach((q, i) => { q.words = words[i] || []; });
     s.tests = [
-      { id: "2", title: "2-тест", subtitle: "Грамматика және сөздік", questions: s.questions },
+      { id: "2", title: stream === "ru" ? "Тест 2" : "2-тест", subtitle: stream === "ru" ? "Грамматика и лексика" : "Грамматика және сөздік", questions: s.questions },
     ];
+  });
+})();
+
+/*
+ * ============ Ағылшын тілі · 1-тест ============
+ * Дереккөз: «Сборник тестов в НИШ. Английский язык», TEST 1 (мәтіндер мен сұрақтар өзгертусіз).
+ * Жауаптар кітаптың жауап кестесі бойынша. Сөз аудармалары («words») платформа үшін қосылған.
+ */
+(function () {
+  const W = window.W;
+  const VOCAB = [
+    W("Accident", "Оқыс жағдай", "Несчастный случай"),
+    W("Ring", "Сақина", "Кольцо"),
+    W("Expensive", "Қымбат", "Дорогой"),
+    W("Frightened", "Қорқып қалған", "Испуганный"),
+    W("Injury", "Жарақат", "Травма"),
+    W("Predator", "Жыртқыш", "Хищник"),
+    W("Charging interest", "Өсім алу", "Начисление процентов"),
+    W("Wealthy", "Бай", "Состоятельный, богатый"),
+    W("Habitat", "Тіршілік ету орны, мекен", "Место обитания"),
+  ];
+
+  const PASSAGES = {
+    club: { title: "The Cycling Club — Who are we?", text:
+      "The Cycling Club is a national organization with over 15,000 members. We promote cycling and are working to improve conditions for cycling. We want:\n\n" +
+      "• more people on bikes\n• bike road safety lessons for all school children\n• more cycle lanes and safer roads\n• traffic lights for bikes\n• safe parking for bikes in cities and towns\n• regular car-free days\n• more participation in National Bike Week\n• new rules and regulations for car drivers" },
+    why: { title: "Why cycle?", text:
+      "Cycling is good for you and good for the environment. More people on bikes mean fewer traffic jams and other traffic problems and less air and noise pollution. More people on bikes also mean healthier and happier people – if the roads are safe. In addition, cycling is a cheap method of transport. If you can’t cycle all the way to work or college, combine a bike ride with public transport: you can take bikes on most trains and trams and on some buses." },
+    join: { title: "Join our club! You get ...", text:
+      "• all the news on our club website\n• regular bike rides and social events\n• free cycling maps\n• advice on safe cycling\n• discounts on safe cycling courses\n• discounts on bike repair courses\n• discounts on new bikes in bike shops around the country\n• cheap cycle insurance" },
+    contact: { title: "Contact us! Tell us ...", text:
+      "• ... what you think of cycling safety and transport in your area\n• ... what you would like to improve in your area\n• ... your ideas to get more people on their bikes!" },
+    equipment: { kind: "notice", text: "The use of this equipment does not guarantee personal safety or freedom from physical injury" },
+    penguins: { title: "Penguins", text:
+      "Penguins are among the most popular of all birds. They only live in and around the South Pole and the continent of Antarctica. No wild penguins live at the North Pole. There are many different kinds of penguins. The largest penguin is called the Emperor Penguin and the smallest kind of penguin is the Little Blue Penguin. There are 17 different kinds of penguins in all and none of them can fly.\n\n" +
+      "Penguins have to be able to survive in some of the Earth's coldest and windiest conditions. They are great swimmers and have thick layers of fat to protect them from the bitter cold. Even in their freezing cold habitats, penguins still have to watch out for predators such as killer whales and seals." },
+    library: { kind: "notice", title: "LIBRARY HOURS", text: "OPEN\n9.AM TILL 5.30 WEEKDAYS\n9.30 A.M TILL 1 P.M SATURDAY" },
+    usa: { title: "The United States", text:
+      "The United States is a large country. It is the third largest in the whole world! It is located in a continent called North America. Parts of the United States touch three different oceans. The United States has tall mountains, wide plains, deserts, hills, rivers, lakes, volcanoes, and even rainforests! People from all over the world have come to live in the United States.\n\n" +
+      "There are 50 states in the United States. The newest states, Alaska and Hawaii, are not connected to the other states. Alaska is the largest state and Hawaii is a chain of islands in the Pacific Ocean." },
+    school: { kind: "notice", text: "School entrance ahead\ndead slow" },
+    banks: { title: "What are the Banks?", text:
+      "Banks are places where people can keep their money. Most people use banks to save money in their savings accounts and to pay money from their checking accounts. Today, when a person earns money from their job, their paycheck is often electronically deposited (put) into their savings or checking account. Then, he or she can pay their bills by writing checks from their checking accounts or pay online where their bills are electronically connected to their bank accounts.\n\n" +
+      "Banks also give __12__ to people. Banks use the money that their customers deposit to lend to people to buy new houses, cars, or to start businesses among other reasons. The bank makes money from lending by charging interest. In other words, people have to pay back more than they borrowed. This amount depends on how risky the bank thinks the borrower is and how fast the loan is paid back among other things." },
+    stefan: { kind: "message", text: "Stefan,\nI can’t find my hat. It’s a bit like yours so maybe you picked it up by mistake when we were doing our homework together last night.\nBella" },
+    mosquito: { title: "The lifetime of a mosquito", text:
+      "There are four stages in the lifetime of a mosquito: egg, larva, pupa, and adult. Mosquito eggs need water to hatch. Different species of mosquitoes prefer different places to lay their eggs. Some prefer to lay their eggs in standing water, such as water in old tires or buckets. Others like to lay their eggs in areas with a lot of organic material, like leaves and grass, so they lay their eggs in marshes and swamps. Some prefer fresh water; some like saltwater." },
+    gym: { kind: "notice", text: "Gym changing rooms\nPlace personal items in lockers.\nStaff will remove anything on floor." },
+    sleep: { title: "Sleep", text:
+      "The National Sleep Foundation in the United States says that 7–9 hours of sleep daily is best for an adult. Seven to nine hours of sleep is good for memory, alertness, problem–solving, and health. Less than six hours of sleep affects the ability to think. Getting too much sleep may not be good for people either. Too much sleep is linked to sickness and depression. Babies need a lot more sleep than adults. A newborn infant needs up to 18 hours of sleep each day. A baby spends about nine hours in REM sleep. Five–year–olds need 11–13 hours of sleep each day. A five–year– old spends about 2 hours in REM sleep. Teenagers need 9–10 hours of sleep each day. Pregnant women need more sleep than other adults. Many people think that *elderly* people need less sleep than younger adults, but that is not true. Most adults do well with 7–9 hours of sleep." },
+  };
+
+  // answer: кітаптың жауап кестесі (A=0, B=1, C=2, D=3)
+  const QUESTIONS = [
+    { passage: "club", q: "What does the Cycling club want?", options: ["The club wants better safety for cyclists and fewer cars on the roads.", "The club wants special roads for cyclists.", "The club wants safety lessons for adults", "The club wants to earn more money"], answer: 0,
+      explain: "Text: “more cycle lanes and safer roads”, “regular car-free days”.",
+      words: [W("promote", "насихаттау, қолдау", "продвигать, поддерживать"), W("cycle lane", "велосипед жолағы", "велодорожка"), W("participation", "қатысу", "участие"), W("regulations", "ережелер", "правила, нормы")] },
+    { passage: "why", q: "Find the true sentence", options: ["The Cycling Club is against public transport.", "More people on bikes cause traffic jams.", "Cycling is not expensive comparing with other transport.", "It is dangerous to cycle to work"], answer: 2,
+      explain: "Text: “cycling is a cheap method of transport”.",
+      words: [W("environment", "қоршаған орта", "окружающая среда"), W("traffic jam", "көлік кептелісі", "пробка"), W("pollution", "ластану", "загрязнение"), W("combine", "біріктіру", "сочетать")] },
+    { passage: "join", q: "If you join the club, what will you NOT get?", options: ["Individual trainer", "Cheap cycle insurance", "Regular social events", "Free maps"], answer: 0,
+      explain: "The list has insurance, social events and free maps, but no individual trainer.",
+      words: [W("discount", "жеңілдік", "скидка"), W("insurance", "сақтандыру", "страховка"), W("advice", "кеңес", "совет"), W("trainer", "жаттықтырушы", "тренер")] },
+    { passage: "contact", q: "Contacting the club, you can…", options: ["...share your ideas how to improve transportation system", "...tell what you think about modern automobiles", "...share your ideas how to get more people on their cars", "...tell what can be improved in your area"], answer: 3,
+      explain: "Text: “what you would like to improve in your area”.",
+      words: [W("improve", "жақсарту", "улучшать"), W("area", "аудан, өңір", "район, местность"), W("share", "бөлісу", "делиться")] },
+    { passage: "equipment", q: "This equipment...", options: ["...is 100% safe", "...cannot promise safety", "...causes injury"], answer: 1,
+      explain: "“does not guarantee personal safety” = cannot promise safety.",
+      words: [W("equipment", "құрал-жабдық", "снаряжение, оборудование"), W("guarantee", "кепілдік беру", "гарантировать"), W("injury", "жарақат", "травма")] },
+    { passage: "penguins", q: "Penguins are....", options: ["… all very large", "… great at flying", "… great at swimming", "… not birds"], answer: 2,
+      explain: "Text: “They are great swimmers”.",
+      words: [W("survive", "тірі қалу", "выживать"), W("layer", "қабат", "слой"), W("fat", "май", "жир"), W("bitter cold", "қатты суық", "сильный холод")] },
+    { passage: "penguins", q: "Which of the following is NOT a PREDATOR of penguins?", options: ["Hawk", "Killer whale", "Seal", "None of these"], answer: 0,
+      explain: "Text: “predators such as killer whales and seals”. Hawks are not mentioned.",
+      words: [W("predator", "жыртқыш", "хищник"), W("hawk", "қаршыға", "ястреб"), W("killer whale", "косатка (кит)", "косатка"), W("seal", "итбалық", "тюлень")] },
+    { passage: "library", q: "The library ...", options: ["closes later on Saturday", "is open 5 days a week", "is not open on Sunday", "is open everyday"], answer: 2,
+      explain: "The sign shows weekdays and Saturday only, so it is closed on Sunday.",
+      words: [W("weekdays", "жұмыс күндері (дс–жм)", "будние дни"), W("till", "...дейін", "до")] },
+    { passage: "usa", q: "According to the text, which state of the United States is the newest and contain islands?", options: ["Alaska", "North America", "Pacific Ocean", "Hawaii"], answer: 3,
+      explain: "Text: “Hawaii is a chain of islands in the Pacific Ocean”.",
+      words: [W("newest", "ең жаңа", "самый новый"), W("chain of islands", "аралдар тізбегі", "цепь островов"), W("connected", "қосылған", "соединённый")] },
+    { passage: "usa", q: "Find the true statement", options: ["The United States touches Pacific Ocean", "The United States doesn’t have rainforests", "Alaska and Hawaii are islands", "The United States is located in South America"], answer: 0,
+      explain: "Text: “Parts of the United States touch three different oceans”, Hawaii is in the Pacific Ocean.",
+      words: [W("located", "орналасқан", "расположен"), W("plain", "жазық", "равнина"), W("rainforest", "тропикалық орман", "тропический лес"), W("statement", "тұжырым", "утверждение")] },
+    { passage: "school", q: "Who is this sign meant for?", options: ["children", "drivers", "teachers", "parents"], answer: 1,
+      explain: "“Dead slow” is an instruction for drivers near a school.",
+      words: [W("entrance", "кіреберіс", "вход"), W("ahead", "алда", "впереди"), W("dead slow", "өте баяу", "очень медленно"), W("meant for", "...ға арналған", "предназначен для")] },
+    { passage: "banks", q: "What word is missing in paragraph 2?", options: ["houses", "loans", "cars", "prizes"], answer: 1,
+      explain: "Banks “lend to people”, so they give loans.",
+      words: [W("loan", "несие", "кредит, заём"), W("lend", "қарызға беру", "давать взаймы"), W("deposit", "салым салу", "вносить (вклад)"), W("customer", "клиент", "клиент")] },
+    { passage: "banks", q: "Find the false sentence", options: ["Banks lend money to people", "Banks help people get jobs", "Banks provide a place for people to save their money", "Banks provide a place where people can pay their bills from"], answer: 1,
+      explain: "The text says nothing about banks helping people get jobs.",
+      words: [W("savings account", "жинақ шоты", "сберегательный счёт"), W("bill", "төлем шоты", "счёт (к оплате)"), W("provide", "қамтамасыз ету", "предоставлять"), W("false", "жалған, қате", "ложный, неверный")] },
+    { passage: "banks", q: "How does \"interest\" work?", options: ["Banks require people to pay back money they borrowed very quickly", "Banks require people to pay back more money than they borrowed", "Banks require people to pay back the same amount they borrowed", "Banks pay people more money than they borrowed"], answer: 1,
+      explain: "Text: “people have to pay back more than they borrowed”.",
+      words: [W("interest", "пайыз, өсім", "проценты"), W("borrow", "қарызға алу", "брать взаймы"), W("pay back", "қайтару", "возвращать (долг)"), W("require", "талап ету", "требовать")] },
+    { passage: "stefan", q: "Bella thinks…", options: ["she has found Stefan’s hat.", "Stefan has taken her hat.", "Stefan has lost his homework.", "Stefan has stolen her hat"], answer: 1,
+      explain: "“maybe you picked it up by mistake”: she thinks Stefan took it by mistake (not stole it).",
+      words: [W("by mistake", "байқамай, қателесіп", "по ошибке"), W("pick up", "алып кету", "взять, подобрать"), W("steal (stolen)", "ұрлау", "красть (украл)")] },
+    { passage: "mosquito", q: "Where do mosquitoes lay their eggs?", options: ["In standing water.", "In marshes and swamps", "In fresh water.", "All of the above are correct."], answer: 3,
+      explain: "The text names standing water, marshes and swamps, and fresh water.",
+      words: [W("lay eggs", "жұмыртқалау", "откладывать яйца"), W("hatch", "жұмыртқадан шығу", "вылупляться"), W("standing water", "тоқтау су", "стоячая вода"), W("marsh / swamp", "батпақ", "болото")] },
+    { passage: "gym", q: "What does it say?", options: ["If staff find items on the floor, they will remove them away in a locker.", "You must use lockers only with the permission of staff.", "Lockers are regularly checked by staff."], answer: 0,
+      explain: "“Staff will remove anything on floor.”",
+      words: [W("changing room", "киім ауыстыратын бөлме", "раздевалка"), W("locker", "құлыпталатын шкаф", "шкафчик"), W("staff", "қызметкерлер", "персонал"), W("remove", "алып кету", "убирать")] },
+    { passage: "sleep", q: "How much sleep should an adult get?", options: ["6-8 hours.", "8 hours.", "7-9 hours.", "At least 9 hours."], answer: 2,
+      explain: "Text: “7–9 hours of sleep daily is best for an adult”.",
+      words: [W("daily", "күнделікті", "ежедневно"), W("alertness", "сергектік", "бодрость, внимательность"), W("ability", "қабілет", "способность")] },
+    { passage: "sleep", q: "Which group needs the most sleep?", options: ["Babies", "Adults", "Pregnant women", "Elderly adults"], answer: 0,
+      explain: "Text: “A newborn infant needs up to 18 hours of sleep each day.”",
+      words: [W("newborn infant", "жаңа туған нәресте", "новорождённый"), W("pregnant", "жүкті", "беременная"), W("teenager", "жасөспірім", "подросток")] },
+    { passage: "sleep", q: "The best synonym for elderly people are...", options: ["babies.", "children.", "teenagers.", "older adults."], answer: 3,
+      explain: "Elderly = old, older adults.",
+      words: [W("elderly", "егде жастағы", "пожилой"), W("synonym", "синоним", "синоним")] },
+  ];
+
+  ["kz", "ru"].forEach((stream) => {
+    const s = window.EXAMS.nis.streams[stream].subjects.find((x) => x.id === "english");
+    s.tests.unshift({
+      id: "1", title: stream === "ru" ? "Тест 1" : "1-тест", subtitle: stream === "ru" ? "Работа с текстом · 40 минут" : "Мәтінмен жұмыс · 40 минут", fixedOrder: true,
+      source: "«Сборник тестов в НИШ. Английский язык», TEST 1",
+      vocab: VOCAB, passages: PASSAGES,
+      questions: QUESTIONS.map((q) => Object.assign({}, q)),
+    });
   });
 })();

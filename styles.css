@@ -460,6 +460,11 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .passage h3 { margin: 0 0 8px; color: var(--burgundy); }
 .passage__text p { margin: 0 0 10px; color: var(--text); font-size: 16px; line-height: 1.65; max-width: 65ch; }
 .passage__text p:last-child { margin-bottom: 0; }
+.passage--notice .passage__text, .passage--message .passage__text { border: 2px solid var(--text); border-radius: 10px; padding: 14px 16px; background: var(--surface); }
+.passage--notice h3, .passage--notice .passage__text p { text-align: center; font-weight: 700; }
+.passage--notice h3 { margin-bottom: 0; border: 2px solid var(--text); border-bottom: 0; border-radius: 10px 10px 0 0; padding: 12px 16px 4px; background: var(--surface); }
+.passage--notice h3 + .passage__text { border-top: 0; border-radius: 0 0 10px 10px; padding-top: 4px; }
+.card .source { margin: 6px 0 0; font-size: 12px; color: var(--muted); font-style: italic; }
 .vocab-title { margin: 4px 0 6px; color: var(--burgundy); font-size: clamp(20px, 3vw, 26px); }
 .vocab-wrap { overflow-x: auto; margin: 10px 0 4px; }
 .vocab { width: 100%; border-collapse: collapse; font-size: 15px; }
