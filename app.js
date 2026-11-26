@@ -28,7 +28,9 @@
     const all = read(TRACKER_KEY, {});
     const t = all[examId] || {};
     // Емтихан күні тұрақты: тек data/tasks.js ішіндегі examDate алынады
-    return { date: EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [], ubs: t.ubs || [], week: trimWeek(t.week || {}), done: t.done || {} };
+    return { date: EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [], ubs: t.ubs || [], week: trimWeek(t.week || {}), done: t.done || {},
+      // ❄️ Серияны қатыру: бастауға 1 сыйлық, ең көбі FREEZE_MAX
+      freezes: t.freezes == null ? 1 : t.freezes, frozen: t.frozen || {}, awarded: t.awarded || {} };
   }
   function trimWeek(week) {
     const out = {};
@@ -37,7 +39,8 @@
   }
   function saveTracker(examId, data) {
     const all = read(TRACKER_KEY, {});
-    all[examId] = { days: data.days, todos: data.todos, ubs: data.ubs, week: data.week, done: data.done };
+    all[examId] = { days: data.days, todos: data.todos, ubs: data.ubs, week: data.week, done: data.done,
+      freezes: data.freezes, frozen: data.frozen, awarded: data.awarded };
     write(TRACKER_KEY, all);
   }
 
@@ -379,13 +382,51 @@
     saveTracker(examId, data);
   }
 
-  function streakOf(days) {
+  const FREEZE_MAX = 2;    // қолда ең көбі 2 қатыру
+  const FREEZE_EVERY = 7;  // әр 7 күн қатарынан орындаса, +1 қатыру
+
+  // Қатарынан орындалған күндер. Қатырылған күн серияны үзбейді, бірақ санды өсірмейді.
+  function streakOf(days, frozen) {
+    frozen = frozen || {};
     const d = new Date();
-    if (!days[dayKey(d)]) d.setDate(d.getDate() - 1); // бүгін әлі белгіленбесе, кешеден бастап санаймыз
+    if (!days[dayKey(d)]) d.setDate(d.getDate() - 1); // бүгін әлі орындалмаса, кешеден бастап санаймыз
     let n = 0;
-    while (days[dayKey(d)]) { n++; d.setDate(d.getDate() - 1); }
+    for (;;) {
+      const k = dayKey(d);
+      if (days[k]) n++;
+      else if (!frozen[k]) break;
+      d.setDate(d.getDate() - 1);
+    }
     return n;
   }
+
+  // Өткізіп алған күндерге қатыруды автоматты түрде жұмсайды. Өзгеріс болса true қайтарады.
+  function applyFreezes(data) {
+    const active = (k) => data.days[k] || data.frozen[k];
+    const d = new Date(); d.setDate(d.getDate() - 1); // кешеден бастап артқа
+    const gap = [];
+    while (!active(dayKey(d)) && gap.length <= data.freezes) { gap.push(dayKey(d)); d.setDate(d.getDate() - 1); }
+    // gap бос болса, өткізіп алған күн жоқ. Қатыру жетпесе немесе алдында серия болмаса, ештеңе істемейміз.
+    if (!gap.length || gap.length > data.freezes || !data.days[dayKey(d)] && !data.frozen[dayKey(d)]) return false;
+    gap.forEach((k) => { data.frozen[k] = true; });
+    data.freezes -= gap.length;
+    data.lastFrozen = gap;
+    return true;
+  }
+
+  // Бүгінгі күн өзгерген соң: 7, 14, 21... күнге жетсе қатыру береміз, бүгінгі белгі алынса қайтарамыз
+  function syncFreezeAward(data) {
+    const k = dayKey(new Date());
+    const streak = streakOf(data.days, data.frozen);
+    if (data.days[k] && streak > 0 && streak % FREEZE_EVERY === 0 && !data.awarded[k]) {
+      data.awarded[k] = data.freezes < FREEZE_MAX; // толы болса, сыйлық жоқ
+      if (data.awarded[k]) data.freezes++;
+    } else if (!data.days[k] && data.awarded[k] != null) {
+      if (data.awarded[k] && data.freezes > 0) data.freezes--;
+      delete data.awarded[k];
+    }
+  }
+
 
   function bestOfSubject(examId, subjectId, progress) {
     // НИШ-те қазақша және орысша нәтижелердің ең жақсысы алынады
@@ -446,6 +487,8 @@
   function renderTracker(examId) {
     const exam = EXAMS[examId];
     const data = loadTracker(examId);
+    if (applyFreezes(data)) saveTracker(examId, data);
+    const usedFreeze = data.lastFrozen || [];
     const profile = loadProfile();
     let view = new Date(); view.setDate(1);
     let editingName = !profile.name;
@@ -593,17 +636,21 @@
       const picked = data.week[todayIdx] || [];
       const done = data.done[todayKey] || [];
       const lit = !!data.days[todayKey];
-      const streak = streakOf(data.days);
+      const streak = streakOf(data.days, data.frozen);
       const state = lit ? "lit" : streak > 0 ? "warn" : "off";
-      const msg = lit ? "Ми жанып тұр! Ертең де жалғастыр."
+      const yKey = (() => { const y = new Date(); y.setDate(y.getDate() - 1); return dayKey(y); })();
+      const toNext = FREEZE_EVERY - (streak % FREEZE_EVERY);
+      const msg = !lit && data.frozen[yKey] ? "❄️ Кеше серия қатырылды, ми сөнбеді! Бүгін міндетті түрде орында."
+        : lit ? "Ми жанып тұр! Ертең де жалғастыр."
         : streak > 0 ? "Бүгінгі мақсатыңды орында, әйтпесе ми сөніп қалады!"
         : "Ми сөніп тұр. Бүгінгі мақсатыңды орындап, қайта жақ!";
       const n = picked.filter((id) => done.includes(id)).length;
       const dots = DAY_NAMES.map((name, i) => {
         const k = dateOfWeekday(i);
         const ok = !!data.days[k];
-        const cls = ["streak__dot", ok ? "is-done" : "", i === todayIdx ? "is-today" : "", i > todayIdx ? "is-future" : ""].join(" ");
-        return `<span class="streak__day"><small>${WEEKDAYS[i]}</small><i class="${cls}" aria-label="${name}: ${ok ? "орындалды" : "орындалмаған"}">${ok ? "✓" : ""}</i></span>`;
+        const fz = !ok && !!data.frozen[k];
+        const cls = ["streak__dot", ok ? "is-done" : "", fz ? "is-frozen" : "", i === todayIdx ? "is-today" : "", i > todayIdx ? "is-future" : ""].join(" ");
+        return `<span class="streak__day"><small>${WEEKDAYS[i]}</small><i class="${cls}" aria-label="${name}: ${ok ? "орындалды" : fz ? "қатырылды" : "орындалмаған"}">${ok ? "✓" : fz ? "❄️" : ""}</i></span>`;
       }).join("");
       const today = picked.length ? `
           <div class="streak__today">
@@ -618,6 +665,7 @@
           </div>`
         : `<p class="streak__hint">Бүгінге (${DAY_NAMES[todayIdx].toLowerCase()}) пән таңдалмаған. Төменнен күнді ашып, 2 пәнге дейін таңда.</p>`;
       return `
+        ${usedFreeze.length ? `<div class="freeze-used" role="status">❄️ ${usedFreeze.length === 1 ? "1 күн" : usedFreeze.length + " күн"} өткізіп алдың, бірақ қатыру серияңды сақтап қалды!</div>` : ""}
         <div class="streak streak--${state}">
           <div class="streak__top">
             <div class="streak__brain" aria-hidden="true"><span>🧠</span></div>
@@ -628,6 +676,16 @@
           </div>
           <p class="streak__msg">${msg}</p>
           <div class="streak__week">${dots}</div>
+          <div class="freeze">
+            <div class="freeze__slots" aria-label="Қатыру: ${data.freezes}/${FREEZE_MAX}">
+              ${Array.from({ length: FREEZE_MAX }, (_, i) => `<span class="freeze__slot ${i < data.freezes ? "is-full" : ""}">❄️</span>`).join("")}
+            </div>
+            <div class="freeze__text">
+              <strong>Серияны қатыру: ${data.freezes}/${FREEZE_MAX}</strong>
+              <span>${data.freezes ? "Бір күн өткізіп алсаң, ми сөнбейді. Қатыру өзі жұмсалады." : "Қатыру қалмады. Келесі күн өткізілсе, ми сөнеді."}
+              ${data.freezes < FREEZE_MAX ? ` Жаңасына дейін: ${toNext} күн.` : ""}</span>
+            </div>
+          </div>
           ${today}
         </div>`;
     }
@@ -689,6 +747,7 @@
         const k = `${y}-${pad(m + 1)}-${pad(d)}`;
         const cls = ["cal__cell"];
         if (data.days[k]) cls.push("is-done");
+        else if (data.frozen[k]) cls.push("is-frozen");
         if (k === today) cls.push("is-today");
         if (k === exDay) cls.push("is-exam");
         const future = k > today;
@@ -701,7 +760,7 @@
           <button class="cal__nav" data-cal="1" aria-label="Келесі ай">›</button>
         </div>
         <div class="cal__grid">${WEEKDAYS.map((w) => `<span class="cal__wd">${w}</span>`).join("")}${cells}</div>
-        <div class="cal__legend"><span><i class="lg-done"></i>Дайындалдым</span><span><i class="lg-today"></i>Бүгін</span><span><i class="lg-exam"></i>Емтихан</span></div>`;
+        <div class="cal__legend"><span><i class="lg-done"></i>Дайындалдым</span><span><i class="lg-today"></i>Бүгін</span><span><i class="lg-exam"></i>Емтихан</span><span><i class="lg-frozen"></i>Қатырылды</span></div>`;
     }
 
     function statsHTML() {
@@ -709,7 +768,7 @@
       const ym = dayKey(new Date()).slice(0, 7);
       const month = all.filter((k) => k.startsWith(ym)).length;
       return `
-        <div class="tstat"><b>${streakOf(data.days)}</b><span>күн қатарынан</span></div>
+        <div class="tstat"><b>${streakOf(data.days, data.frozen)}</b><span>күн қатарынан</span></div>
         <div class="tstat"><b>${month}</b><span>күн осы айда</span></div>
         <div class="tstat"><b>${all.length}</b><span>күн барлығы</span></div>`;
     }
@@ -844,6 +903,7 @@
         const picked = data.week[todayIdx] || [];
         // Бүгінгі барлық пән орындалса, ми жанады (күнтізбеде белгіленеді); біреуі алынса, сөнеді
         if (picked.every((x) => set.has(x))) data.days[k] = true; else delete data.days[k];
+        syncFreezeAward(data);
         saveTracker(examId, data);
         draw();
       }));
@@ -866,12 +926,14 @@
       app.querySelector("#mark-today").addEventListener("click", () => {
         const k = dayKey(new Date());
         if (data.days[k]) delete data.days[k]; else data.days[k] = true;
+        syncFreezeAward(data);
         saveTracker(examId, data);
         draw();
       });
       app.querySelectorAll("[data-day]").forEach((b) => b.addEventListener("click", () => {
         const k = b.dataset.day;
         if (data.days[k]) delete data.days[k]; else data.days[k] = true;
+        syncFreezeAward(data);
         saveTracker(examId, data);
         draw();
       }));

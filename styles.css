@@ -282,6 +282,7 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .lg-done { background: var(--olive); }
 .lg-today { box-shadow: inset 0 0 0 2px var(--burgundy); }
 .lg-exam { background: var(--burgundy); }
+.lg-frozen { background: #9cc4ea; }
 
 .todo-form { display: flex; gap: 8px; margin-bottom: 14px; }
 .todo-form input { flex: 1; min-width: 0; font: inherit; font-size: 16px; padding: 11px 14px; border-radius: 12px; border: 2px solid var(--border); background: var(--surface); color: var(--text); }
@@ -429,6 +430,16 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .streak__goal.is-done em { background: #8fa548; color: #fff; }
 .card .streak__hint { margin: 14px 0 0; color: rgba(255, 255, 255, .8); font-size: 14px; }
 @media (prefers-reduced-motion: reduce) { .streak__brain { animation: none !important; } }
+.freeze { display: flex; align-items: center; gap: 12px; margin-top: 14px; padding: 10px 12px; border-radius: 14px; background: rgba(160, 205, 255, .14); border: 1px solid rgba(170, 210, 255, .3); }
+.freeze__slots { display: flex; gap: 4px; flex-shrink: 0; }
+.freeze__slot { width: 34px; height: 34px; border-radius: 10px; display: grid; place-items: center; font-size: 18px; background: rgba(255, 255, 255, .08); filter: grayscale(1); opacity: .35; }
+.freeze__slot.is-full { background: rgba(150, 200, 255, .35); filter: none; opacity: 1; box-shadow: 0 0 12px rgba(150, 200, 255, .5); }
+.freeze__text { display: flex; flex-direction: column; min-width: 0; font-size: 13px; }
+.freeze__text strong { font-size: 14px; color: #dcebff; }
+.freeze__text span { opacity: .85; }
+.streak__dot.is-frozen { background: #7fb2e5; border-color: #7fb2e5; font-size: 13px; }
+.freeze-used { margin-bottom: 10px; padding: 10px 14px; border-radius: 12px; background: #e3f0fc; color: #24507a; font-weight: 700; font-size: 14px; }
+.cal__cell.is-frozen { background: #e3f0fc; border-color: #9cc4ea; color: #24507a; }
 .day__tag.is-done { background: var(--olive-soft); color: var(--olive); }
 
 /* ---------- Footer ---------- */
