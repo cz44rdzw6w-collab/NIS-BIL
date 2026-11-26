@@ -452,6 +452,39 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .cal__cell.is-frozen { background: #e3f0fc; border-color: #9cc4ea; color: #24507a; }
 .day__tag.is-done { background: var(--olive-soft); color: var(--olive); }
 
+/* ---------- Tests, passages, vocab, error review ---------- */
+.test-card__head { display: flex; justify-content: space-between; align-items: center; gap: 10px; }
+.test-card__head h3 { margin: 0; color: var(--burgundy); }
+.passage { margin-bottom: 14px; border-left: 5px solid var(--lavender-deep); }
+.passage__label { display: inline-block; font-size: 12px; font-weight: 800; letter-spacing: .04em; text-transform: uppercase; color: var(--lavender-deep); margin-bottom: 6px; }
+.passage h3 { margin: 0 0 8px; color: var(--burgundy); }
+.passage__text p { margin: 0 0 10px; color: var(--text); font-size: 16px; line-height: 1.65; max-width: 65ch; }
+.passage__text p:last-child { margin-bottom: 0; }
+.vocab-title { margin: 4px 0 6px; color: var(--burgundy); font-size: clamp(20px, 3vw, 26px); }
+.vocab-wrap { overflow-x: auto; margin: 10px 0 4px; }
+.vocab { width: 100%; border-collapse: collapse; font-size: 15px; }
+.vocab th { text-align: left; font-size: 12px; text-transform: uppercase; letter-spacing: .05em; color: var(--muted); padding: 8px 12px; border-bottom: 2px solid var(--border); }
+.vocab td { padding: 10px 12px; border-bottom: 1px solid var(--border); }
+.vocab td:first-child { font-weight: 700; color: var(--burgundy); font-style: italic; }
+.vocab tr:nth-child(even) td { background: var(--lavender-soft); }
+.review { margin-top: 18px; }
+.review h3 { margin: 0 0 6px; color: var(--burgundy); display: flex; align-items: center; gap: 8px; }
+.review h4 { margin: 16px 0 4px; color: var(--burgundy); }
+.card .review__ok { color: var(--ok); font-weight: 700; font-size: 17px; }
+.review__list { margin: 0; padding: 0; list-style: none; display: grid; gap: 12px; }
+.review__item { padding: 14px; border-radius: 14px; border: 1px solid var(--border); background: var(--bg); display: grid; gap: 6px; }
+.review__q { font-weight: 600; }
+.review__src { color: var(--muted); font-weight: 500; font-size: 14px; }
+.review__ans { font-size: 15px; padding: 6px 10px; border-radius: 10px; }
+.review__ans span { font-weight: 700; }
+.review__ans.is-bad { background: #fbe9ee; color: #6d1830; }
+.review__ans.is-ok { background: var(--olive-soft); color: #3d4721; }
+.card .review__explain { margin: 0; font-size: 14px; color: var(--muted); }
+.review__words { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; margin-top: 2px; }
+.review__words-title { font-size: 12px; font-weight: 800; color: var(--lavender-deep); text-transform: uppercase; letter-spacing: .04em; width: 100%; }
+.wchip { font-size: 14px; padding: 4px 10px; border-radius: 999px; background: var(--lavender-soft); color: var(--text); }
+.wchip b { color: var(--burgundy); }
+
 /* ---------- Footer ---------- */
 .footer { border-top: 1px solid var(--border); background: var(--surface); font-size: 14px; color: var(--muted); }
 .footer__inner { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; padding-top: 18px; padding-bottom: 18px; }

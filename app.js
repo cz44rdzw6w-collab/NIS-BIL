@@ -73,6 +73,31 @@
 
   /* ================= Көмекші функциялар ================= */
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+  // Тесттерге бөлінген пәндер: бос тесттерді жасырып, барлық сұрақтарды пәннің questions-іне жинаймыз
+  Object.values(EXAMS).forEach((exam) => Object.values(exam.streams).forEach((st) => st.subjects.forEach((subj) => {
+    if (!subj.tests) return;
+    subj.tests = subj.tests.filter((tt) => tt.questions && tt.questions.length)
+      .sort((a, b) => Number(a.id) - Number(b.id));
+    subj.questions = subj.tests.reduce((all, tt) => all.concat(tt.questions), []);
+  })));
+
+  // Пән бойынша ең жақсы нәтиже (пайызбен). Тесттерге бөлінген пәнде ең жақсы тест алынады.
+  function bestPct(examId, streamId, subj, progress) {
+    const key = `${examId}.${streamId}.${subj.id}`;
+    if (subj.tests) {
+      let pct = 0, tried = false;
+      subj.tests.forEach((tt) => {
+        const v = progress[`${key}.t${tt.id}`];
+        if (v == null) return;
+        tried = true;
+        pct = Math.max(pct, Math.round((v / tt.questions.length) * 100));
+      });
+      return { pct, tried };
+    }
+    const v = progress[key];
+    return { pct: v == null ? 0 : Math.round((v / subj.questions.length) * 100), tried: v != null, raw: v };
+  }
+
   const countQuestions = (exam) => Object.values(exam.streams)
     .reduce((n, st) => n + st.subjects.reduce((m, s) => m + s.questions.length, 0), 0);
 
@@ -290,16 +315,18 @@
       ${switcher}
       <div class="grid grid--3">
         ${stream.subjects.map((s) => {
-          const best = progress[`${examId}.${streamId}.${s.id}`];
-          const pct = best == null ? 0 : Math.round((best / s.questions.length) * 100);
+          const r = bestPct(examId, streamId, s, progress);
+          const pct = r.pct;
+          const count = s.tests ? `${s.tests.length} тест · ${s.questions.length} сұрақ` : `${s.questions.length} тапсырма`;
+          const bestText = !r.tried ? "Әлі шешілмеген" : s.tests ? `Ең жақсы: ${pct}%` : `Ең жақсы: ${r.raw}/${s.questions.length}`;
           return `
             <a class="card subject" href="#quiz-${examId}-${streamId}-${s.id}">
               <div class="subject__icon ${s.color}">${s.icon}</div>
               <h3>${esc(s.title)}</h3>
               <div class="progress"><span style="width:${pct}%"></span></div>
               <div class="subject__meta">
-                <span>${s.questions.length} тапсырма</span>
-                <span>${best == null ? "Әлі шешілмеген" : `Ең жақсы: ${best}/${s.questions.length}`}</span>
+                <span>${count}</span>
+                <span>${bestText}</span>
               </div>
             </a>`;
         }).join("")}
@@ -308,24 +335,80 @@
   }
 
   /* ================= Тест ================= */
-  function renderQuiz(examId, streamId, subjectId) {
+  const LETTERS = ["A", "B", "C", "D", "E"];
+  const TEXT = {
+    kz: { q: "Сұрақ", next: "Келесі →", finish: "Аяқтау", right: "Дұрыс!", wrong: "Қате.", again: "Қайта шешу", back: "Пәндерге оралу",
+      done: "Тест аяқталды", score: "Дұрыс жауаптар", tests: "Тестті таңда", questions: "сұрақ", best: "Ең жақсы", notYet: "Әлі шешілмеген",
+      vocab: "Тест алдында мына сөздерді үйрен", vocabHint: "Бұл сөздер тестте кездеседі. Жаттап алып, тестті баста.", start: "Тестті бастау →",
+      skipVocab: "Сөздікті өткізу", word: "Сөз", tr: "Аудармасы", passage: "Мәтінді оқып, сұраққа жауап бер", review: "Қатемен жұмыс",
+      reviewHint: "Қате жауап берген сұрақтарыңды қайта қарап шық.", yours: "Сенің жауабың", correctIs: "Дұрыс жауап",
+      hard: "Күрделі сөздер", noMistakes: "Бірде-бір қате жоқ! Керемет! 🎉", allWords: "Тесттегі сөздер", toTests: "Тесттерге оралу" },
+    ru: { q: "Вопрос", next: "Следующий →", finish: "Завершить", right: "Верно!", wrong: "Неверно.", again: "Пройти снова", back: "К предметам",
+      done: "Тест завершён", score: "Правильных ответов", tests: "Выбери тест", questions: "вопросов", best: "Лучший результат", notYet: "Ещё не решён",
+      vocab: "Перед тестом выучи эти слова", vocabHint: "Эти слова встретятся в тесте. Выучи их и начинай.", start: "Начать тест →",
+      skipVocab: "Пропустить словарь", word: "Слово", tr: "Перевод", passage: "Прочитай текст и ответь на вопрос", review: "Работа над ошибками",
+      reviewHint: "Разбери вопросы, в которых ты ошибся.", yours: "Твой ответ", correctIs: "Правильный ответ",
+      hard: "Сложные слова", noMistakes: "Ни одной ошибки! Отлично! 🎉", allWords: "Слова из теста", toTests: "К списку тестов" },
+  };
+  const trOf = (w, streamId) => (streamId === "ru" ? w.ru : w.kz);
+  // Мәтінді абзацтарға бөледі; *сөз* курсивпен/астын сызып белгіленеді
+  const richText = (txt) => String(txt).split(/\n{2,}/).map((para) =>
+    `<p>${esc(para).replace(/\n/g, "<br>").replace(/\*([^*]+)\*/g, "<u><b>$1</b></u>")}</p>`).join("");
+
+  function wordsTable(words, streamId, t) {
+    return `
+      <div class="vocab-wrap"><table class="vocab">
+        <thead><tr><th>${t.word}</th><th>${t.tr}</th></tr></thead>
+        <tbody>${words.map((w) => `<tr><td lang="en">${esc(w.en)}</td><td>${esc(trOf(w, streamId))}</td></tr>`).join("")}</tbody>
+      </table></div>`;
+  }
+
+  function renderTests(examId, streamId, subject) {
+    const exam = EXAMS[examId], stream = exam.streams[streamId];
+    const t = TEXT[streamId === "ru" ? "ru" : "kz"];
+    const progress = loadProgress();
+    const key = `${examId}.${streamId}.${subject.id}`;
+    app.innerHTML = `
+      <div class="breadcrumbs"><a href="#tasks">Тапсырмалар</a> / <a href="#${examId}-${streamId}">${esc(exam.title)} · ${esc(stream.label)}</a> / ${esc(subject.title)}</div>
+      <h1 class="page-title">${subject.icon} ${esc(subject.title)}</h1>
+      <p class="page-sub">${t.tests}</p>
+      <div class="grid grid--2">
+        ${subject.tests.map((tt) => {
+          const v = progress[`${key}.t${tt.id}`];
+          const pct = v == null ? 0 : Math.round((v / tt.questions.length) * 100);
+          return `
+            <a class="card subject test-card" href="#quiz-${examId}-${streamId}-${subject.id}-${tt.id}">
+              <div class="test-card__head"><h3>${esc(tt.title)}</h3><span class="chip">${tt.questions.length} ${t.questions}</span></div>
+              ${tt.subtitle ? `<p>${esc(tt.subtitle)}</p>` : ""}
+              <div class="progress"><span style="width:${pct}%"></span></div>
+              <div class="subject__meta"><span>${tt.vocab && tt.vocab.length ? `📖 ${tt.vocab.length} сөз` : ""}</span><span>${v == null ? t.notYet : `${t.best}: ${v}/${tt.questions.length}`}</span></div>
+            </a>`;
+        }).join("")}
+      </div>`;
+  }
+
+  function renderQuiz(examId, streamId, subjectId, testId) {
     const exam = EXAMS[examId];
     const stream = exam && exam.streams[streamId];
     const subject = stream && stream.subjects.find((s) => s.id === subjectId);
     if (!subject) return renderNotFound();
+    if (subject.tests && !testId) return renderTests(examId, streamId, subject);
+    const test = subject.tests ? subject.tests.find((tt) => tt.id === testId) : null;
+    if (subject.tests && !test) return renderNotFound();
 
-    const ru = streamId === "ru";
-    const t = ru
-      ? { q: "Вопрос", next: "Следующий →", finish: "Завершить", right: "Верно!", wrong: "Неверно.", again: "Пройти снова", back: "К предметам", done: "Тест завершён", score: "Правильных ответов" }
-      : { q: "Сұрақ", next: "Келесі →", finish: "Аяқтау", right: "Дұрыс!", wrong: "Қате.", again: "Қайта шешу", back: "Пәндерге оралу", done: "Тест аяқталды", score: "Дұрыс жауаптар" };
+    const t = TEXT[streamId === "ru" ? "ru" : "kz"];
+    const source = test || subject;
+    const total = source.questions.length;
+    const passages = (test && test.passages) || {};
+    const progressKey = `${examId}.${streamId}.${subjectId}${test ? `.t${test.id}` : ""}`;
+    const backHref = test ? `#quiz-${examId}-${streamId}-${subjectId}` : `#${examId}-${streamId}`;
+    const backText = test ? t.toTests : t.back;
 
-    const backHref = `#${examId}-${streamId}`;
-    let index = 0;
     // Жауап нұсқаларын әр тест сайын араластырамыз, дұрыс жауап әрдайым бір орында тұрмасын.
-    // «Сандық сипаттамаларда» нұсқалар реті тұрақты (А үлкен / B үлкен / Тең / ...), сондықтан араластырмаймыз.
-    const keepOrder = subjectId === "quant";
+    // «Сандық сипаттамаларда» және fixedOrder белгісі бар тесттерде («All of the above» сияқты нұсқалар) реті сақталады.
+    const keepOrder = subjectId === "quant" || (test && test.fixedOrder);
     function prepare() {
-      return subject.questions.map((q) => {
+      return source.questions.map((q) => {
         const order = q.options.map((_, i) => i);
         if (!keepOrder && !q.fixedOrder) {
           for (let i = order.length - 1; i > 0; i--) {
@@ -337,31 +420,54 @@
       });
     }
     let questions = prepare();
+    let index = 0;
     let correct = 0;
-    const letters = ["A", "B", "C", "D", "E"];
+    let mistakes = [];
 
     const header = () =>
-      `<div class="breadcrumbs"><a href="#tasks">Тапсырмалар</a> / <a href="${backHref}">${esc(exam.title)} · ${esc(stream.label)}</a> / ${esc(subject.title)}</div>`;
+      `<div class="breadcrumbs"><a href="#tasks">Тапсырмалар</a> / <a href="#${examId}-${streamId}">${esc(exam.title)} · ${esc(stream.label)}</a> / ${test ? `<a href="${backHref}">${esc(subject.title)}</a> / ${esc(test.title)}` : esc(subject.title)}</div>`;
+
+    function showVocab() {
+      app.innerHTML = `
+        ${header()}
+        <div class="quiz">
+          <div class="card quiz__card">
+            <span class="eyebrow">${esc(test.title)}</span>
+            <h2 class="vocab-title">${t.vocab}</h2>
+            <p class="muted">${t.vocabHint}</p>
+            ${wordsTable(test.vocab, streamId, t)}
+            <div class="quiz__nav"><button class="btn btn--primary" id="start">${t.start}</button></div>
+          </div>
+        </div>`;
+      app.querySelector("#start").addEventListener("click", () => { showQuestion(); window.scrollTo(0, 0); });
+    }
 
     function showQuestion() {
       const item = questions[index];
-      const pct = Math.round((index / subject.questions.length) * 100);
+      const pct = Math.round((index / total) * 100);
+      const passage = item.passage && passages[item.passage];
       app.innerHTML = `
         ${header()}
         <div class="quiz">
           <div class="quiz__top">
-            <span>${subject.icon} ${esc(subject.title)}</span>
-            <span>${t.q} ${index + 1} / ${subject.questions.length}</span>
+            <span>${subject.icon} ${esc(test ? `${subject.title} · ${test.title}` : subject.title)}</span>
+            <span>${t.q} ${index + 1} / ${total}</span>
           </div>
           <div class="progress" style="margin-bottom:18px"><span style="width:${pct}%"></span></div>
+          ${passage ? `
+          <article class="card passage" lang="en">
+            <span class="passage__label">📄 ${t.passage}</span>
+            ${passage.title ? `<h3>${esc(passage.title)}</h3>` : ""}
+            <div class="passage__text">${richText(passage.text)}</div>
+          </article>` : ""}
           <div class="card quiz__card">
             <p class="quiz__q">${esc(item.q)}</p>
             <div class="options">
-              ${item.options.map((o, i) => `<button class="option" data-i="${i}"><b>${letters[i]}</b>${esc(o)}</button>`).join("")}
+              ${item.options.map((o, i) => `<button class="option" data-i="${i}"><b>${LETTERS[i]}</b>${esc(o)}</button>`).join("")}
             </div>
             <div id="feedback"></div>
             <div class="quiz__nav">
-              <button class="btn btn--primary" id="next" disabled>${index === subject.questions.length - 1 ? t.finish : t.next}</button>
+              <button class="btn btn--primary" id="next" disabled>${index === total - 1 ? t.finish : t.next}</button>
             </div>
           </div>
         </div>`;
@@ -371,6 +477,7 @@
         const chosen = Number(btn.dataset.i);
         const ok = chosen === item.answer;
         if (ok) correct++;
+        else mistakes.push({ n: index + 1, item, chosen });
         buttons.forEach((b) => {
           b.disabled = true;
           const i = Number(b.dataset.i);
@@ -384,14 +491,48 @@
 
       app.querySelector("#next").addEventListener("click", () => {
         index++;
-        if (index < subject.questions.length) showQuestion();
+        if (index < total) { showQuestion(); if (passage || (questions[index] && questions[index].passage)) window.scrollTo(0, 0); }
         else showResult();
       });
     }
 
+    function reviewHTML() {
+      if (!mistakes.length) {
+        const all = test && test.vocab && test.vocab.length ? test.vocab : [];
+        return `
+          <section class="card review">
+            <h3>${t.review}</h3>
+            <p class="review__ok">${t.noMistakes}</p>
+            ${all.length ? `<h4>${t.allWords}</h4>${wordsTable(all, streamId, t)}` : ""}
+          </section>`;
+      }
+      return `
+        <section class="card review">
+          <h3>${t.review} <span class="chip">${mistakes.length}</span></h3>
+          <p class="muted">${t.reviewHint}</p>
+          <ol class="review__list">
+            ${mistakes.map((m) => {
+              const words = m.item.words || [];
+              const passage = m.item.passage && passages[m.item.passage];
+              return `
+                <li class="review__item">
+                  <div class="review__q"><b>${t.q} ${m.n}.</b> ${esc(m.item.q)}${passage && passage.title ? ` <span class="review__src">(${esc(passage.title)})</span>` : ""}</div>
+                  <div class="review__ans is-bad"><span>${t.yours}:</span> ${esc(m.item.options[m.chosen])}</div>
+                  <div class="review__ans is-ok"><span>${t.correctIs}:</span> ${esc(m.item.options[m.item.answer])}</div>
+                  ${m.item.explain ? `<p class="review__explain">💡 ${esc(m.item.explain)}</p>` : ""}
+                  ${words.length ? `
+                    <div class="review__words">
+                      <span class="review__words-title">📖 ${t.hard}</span>
+                      ${words.map((w) => `<span class="wchip"><b lang="en">${esc(w.en)}</b> — ${esc(trOf(w, streamId))}</span>`).join("")}
+                    </div>` : ""}
+                </li>`;
+            }).join("")}
+          </ol>
+        </section>`;
+    }
+
     function showResult() {
-      const total = subject.questions.length;
-      saveBest(`${examId}.${streamId}.${subjectId}`, correct);
+      saveBest(progressKey, correct);
       markToday(examId);
       const pct = Math.round((correct / total) * 100);
       app.innerHTML = `
@@ -405,14 +546,20 @@
             <p>${t.score}: ${pct}%</p>
             <div class="hero__actions">
               <button class="btn btn--primary" id="again">${t.again}</button>
-              <a class="btn btn--ghost" href="${backHref}">${t.back}</a>
+              <a class="btn btn--ghost" href="${backHref}">${backText}</a>
             </div>
           </div>
+          ${reviewHTML()}
         </div>`;
-      app.querySelector("#again").addEventListener("click", () => { index = 0; correct = 0; questions = prepare(); showQuestion(); });
+      window.scrollTo(0, 0);
+      app.querySelector("#again").addEventListener("click", () => {
+        index = 0; correct = 0; mistakes = []; questions = prepare();
+        if (test && test.vocab && test.vocab.length) showVocab(); else showQuestion();
+        window.scrollTo(0, 0);
+      });
     }
 
-    showQuestion();
+    if (test && test.vocab && test.vocab.length) showVocab(); else showQuestion();
   }
 
   /* ================= Трекер (НИШ және БИЛ бөлек) ================= */
@@ -473,10 +620,11 @@
     let pct = 0, tried = false;
     Object.entries(EXAMS[examId].streams).forEach(([sid, st]) => {
       const s = st.subjects.find((x) => x.id === subjectId);
-      const v = s && progress[`${examId}.${sid}.${subjectId}`];
-      if (v == null) return;
+      if (!s) return;
+      const r = bestPct(examId, sid, s, progress);
+      if (!r.tried) return;
       tried = true;
-      pct = Math.max(pct, Math.round((v / s.questions.length) * 100));
+      pct = Math.max(pct, r.pct);
     });
     return { pct, tried };
   }
@@ -1068,7 +1216,7 @@
     else if (head === "tasks" && parts.length === 1) { setActiveNav("tasks"); renderTasksRoot(); }
     else if (head === "tasks" && EXAMS[parts[1]]) { setActiveNav(parts[1]); renderSubjects(parts[1], parts[2]); }
     else if (EXAMS[head]) { setActiveNav(head); renderSubjects(head, parts[1]); }
-    else if (head === "quiz" && EXAMS[parts[1]]) { setActiveNav(parts[1]); renderQuiz(parts[1], parts[2], parts[3]); }
+    else if (head === "quiz" && EXAMS[parts[1]]) { setActiveNav(parts[1]); renderQuiz(parts[1], parts[2], parts[3], parts[4]); }
     else if (head === "tracker") { const id = EXAMS[parts[1]] ? parts[1] : "nis"; setActiveNav("tracker"); renderTracker(id); }
     else { setActiveNav(""); renderNotFound(); }
 
