@@ -317,6 +317,16 @@ button:focus-visible, a:focus-visible, input:focus-visible { outline: 3px solid 
 .chip--btn { border: 0; cursor: pointer; }
 .chip--btn:hover { background: var(--lavender); }
 
+.profile--edit input[type="text"] { font: inherit; font-size: 16px; padding: 11px 14px; border-radius: 12px; border: 2px solid var(--border); background: var(--surface); color: var(--text); width: 100%; min-width: 0; }
+.profile--edit .btn { justify-content: center; }
+.consent { display: flex !important; flex-direction: row !important; gap: 10px; align-items: flex-start; padding: 10px 12px; border-radius: 12px; background: var(--lavender-soft); font-size: 14px; cursor: pointer; }
+.consent input { width: 20px; height: 20px; margin-top: 1px; accent-color: var(--burgundy); flex-shrink: 0; }
+.profile__share { font-style: normal; font-size: 12px; font-weight: 700; color: var(--muted); }
+.profile__share.is-on { color: var(--olive); }
+.teacher-status { margin: -6px 0 12px; padding: 8px 12px; border-radius: 10px; background: var(--lavender-soft); font-size: 13px; font-weight: 600; color: var(--muted); display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+.teacher-status.is-ok { background: var(--olive-soft); color: var(--olive); }
+.teacher-status.is-bad { background: #fbe9ee; color: var(--bad); }
+
 /* ---------- ҮБС ---------- */
 .ubs-bars { display: grid; gap: 12px; margin-bottom: 14px; }
 .ubs-bar__top { display: flex; justify-content: space-between; align-items: center; gap: 8px; font-weight: 600; font-size: 15px; margin-bottom: 6px; flex-wrap: wrap; }

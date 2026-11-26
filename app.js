@@ -30,7 +30,7 @@
     // Емтихан күні тұрақты: тек data/tasks.js ішіндегі examDate алынады
     return { date: EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [], ubs: t.ubs || [], week: trimWeek(t.week || {}), done: t.done || {},
       // ❄️ Серияны қатыру: бастауға 1 сыйлық, ең көбі FREEZE_MAX
-      freezes: t.freezes == null ? 1 : t.freezes, frozen: t.frozen || {}, awarded: t.awarded || {} };
+      freezes: t.freezes == null ? 1 : t.freezes, frozen: t.frozen || {}, awarded: t.awarded || {}, sentDays: t.sentDays || {} };
   }
   function trimWeek(week) {
     const out = {};
@@ -40,12 +40,36 @@
   function saveTracker(examId, data) {
     const all = read(TRACKER_KEY, {});
     all[examId] = { days: data.days, todos: data.todos, ubs: data.ubs, week: data.week, done: data.done,
-      freezes: data.freezes, frozen: data.frozen, awarded: data.awarded };
+      freezes: data.freezes, frozen: data.frozen, awarded: data.awarded, sentDays: data.sentDays };
     write(TRACKER_KEY, all);
   }
 
-  const loadProfile = () => read(PROFILE_KEY, { name: "" });
+  function loadProfile() {
+    const p = Object.assign({ name: "", className: "", share: false, sid: "" }, read(PROFILE_KEY, {}));
+    if (!p.sid) { // құрылғының тұрақты белгісі: мұғалім кестесінде бір оқушының жазбалары қайталанбасын
+      p.sid = (window.crypto && crypto.randomUUID) ? crypto.randomUUID() : Date.now().toString(36) + Math.random().toString(36).slice(2);
+      write(PROFILE_KEY, p);
+    }
+    return p;
+  }
   const saveProfile = (p) => write(PROFILE_KEY, p);
+
+  /* ================= Мұғалімге жіберу (Google Sheets) ================= */
+  const TEACHER_URL = ((window.APP_CONFIG || {}).teacherSheetUrl || "").trim();
+  const teacherEnabled = /^https:\/\/script\.google\.com\/macros\/s\/[\w-]+\/exec$/.test(TEACHER_URL);
+
+  async function sendToTeacher(payload) {
+    const body = JSON.stringify(payload);
+    try {
+      // text/plain: браузер алдын ала CORS сұрауын жібермейді, Apps Script жауабын оқи аламыз
+      const res = await fetch(TEACHER_URL, { method: "POST", body });
+      const out = await res.json();
+      return !!out.ok;
+    } catch (e) {
+      // Кейбір браузерлер Apps Script жауабын оқуға рұқсат бермейді. Сонда жауапсыз жібереміз.
+      try { await fetch(TEACHER_URL, { method: "POST", body, mode: "no-cors" }); return true; } catch (e2) { return false; }
+    }
+  }
 
   /* ================= Көмекші функциялар ================= */
   const esc = (s) => String(s).replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
@@ -495,6 +519,8 @@
     let pendingDelete = null;
     const todayIdx = (new Date().getDay() + 6) % 7;
     let openDay = todayIdx;
+    let syncing = false;
+    let teacherStatus = null; // null | "fail"
 
     const firstStream = Object.values(exam.streams)[0];
     const defaultStream = Object.keys(exam.streams)[0];
@@ -505,19 +531,63 @@
       if (editingName) {
         return `
           <form class="card profile profile--edit" id="name-form">
-            <label for="profile-name"><strong>Аты-жөнің</strong><span>Жоспар мен мотивация саған арнап жазылады.</span></label>
-            <div class="todo-form">
-              <input type="text" id="profile-name" value="${esc(profile.name)}" placeholder="Мысалы: Айгерім Серікова" maxlength="60" autocomplete="name">
-              <button class="btn btn--primary" type="submit">Сақтау</button>
-            </div>
+            <label for="profile-name"><strong>Аты-жөнің</strong><span>Мотивация саған арнап жазылады.</span></label>
+            <input type="text" id="profile-name" value="${esc(profile.name)}" placeholder="Мысалы: Айгерім Серікова" maxlength="60" autocomplete="name" required>
+            <label for="profile-class"><strong>Сыныбың</strong></label>
+            <input type="text" id="profile-class" value="${esc(profile.className)}" placeholder="Мысалы: 6 «А»" maxlength="20">
+            ${teacherEnabled ? `
+            <label class="consent" for="profile-share">
+              <input type="checkbox" id="profile-share" ${profile.share ? "checked" : ""}>
+              <span>Аты-жөнім, сыныбым, ҮБС нәтижелерім және орындалған мақсаттарым мұғалімге жіберілсін</span>
+            </label>` : ""}
+            <button class="btn btn--primary" type="submit">Сақтау</button>
           </form>`;
       }
       return `
         <div class="card profile">
           <span class="profile__avatar">${esc(profile.name.trim().charAt(0).toUpperCase())}</span>
-          <div class="profile__text"><span>Оқушы</span><strong>${esc(profile.name)}</strong></div>
+          <div class="profile__text">
+            <span>Оқушы${profile.className ? ` · ${esc(profile.className)}` : ""}</span>
+            <strong>${esc(profile.name)}</strong>
+            ${teacherEnabled ? `<em class="profile__share ${profile.share ? "is-on" : ""}">${profile.share ? "📤 Нәтижелер мұғалімге жіберіледі" : "Мұғалімге жіберу өшірулі"}</em>` : ""}
+          </div>
           <button class="chip chip--btn" id="name-edit">Өзгерту</button>
         </div>`;
+    }
+
+    function teacherHTML() {
+      if (!teacherEnabled) return "";
+      if (!profile.share) return `<p class="teacher-status">Нәтижелер мұғалімге жіберілмейді. Қосу үшін профильдегі «Өзгерту» батырмасын бас.</p>`;
+      const pending = data.ubs.filter((u) => u.sent !== true).length;
+      if (syncing) return `<p class="teacher-status">⏳ Мұғалімге жіберіліп жатыр…</p>`;
+      if (teacherStatus === "fail") return `<p class="teacher-status is-bad">⚠️ Мұғалімге жіберілмеді. Интернетті тексеріп, қайта жібер. <button class="chip chip--btn" id="teacher-retry">Қайта жіберу</button></p>`;
+      if (!data.ubs.length) return `<p class="teacher-status">📤 ҮБС нәтижесін енгізсең, ол мұғалімге өзі жіберіледі.</p>`;
+      return pending ? "" : `<p class="teacher-status is-ok">📤 Барлық ҮБС нәтижесі мұғалімге жіберілді</p>`;
+    }
+
+    // Жіберілмеген ҮБС нәтижелерін және бүгінгі орындалған күнді мұғалімге жібереді
+    async function syncTeacher() {
+      if (!teacherEnabled || !profile.share || !profile.name || syncing || teacherStatus === "fail") return;
+      const today = dayKey(new Date());
+      const ubsJobs = data.ubs.filter((u) => u.sent !== true);
+      const dayJob = data.days[today] && !data.sentDays[today];
+      if (!ubsJobs.length && !dayJob) return;
+      syncing = true;
+      draw();
+      const base = { sid: profile.sid, name: profile.name, className: profile.className, exam: examId, streak: streakOf(data.days, data.frozen) };
+      let ok = true;
+      for (const u of ubsJobs) {
+        if (await sendToTeacher(Object.assign({ type: "ubs", date: u.date, scores: u.scores }, base))) u.sent = true;
+        else { ok = false; break; }
+      }
+      if (ok && dayJob) {
+        if (await sendToTeacher(Object.assign({ type: "day", date: today, subjects: data.done[today] || [] }, base))) data.sentDays[today] = true;
+        else ok = false;
+      }
+      saveTracker(examId, data);
+      syncing = false;
+      teacherStatus = ok ? null : "fail";
+      if (location.hash === `#tracker-${examId}` || (examId === "nis" && location.hash === "#tracker")) draw();
     }
 
     function ubsFormHTML() {
@@ -817,6 +887,7 @@
         <div class="grid grid--2 tracker-grid">
           <section class="card ubs">
             <div class="card__title"><h3>ҮБС нәтижелері</h3>${data.ubs.length ? `<span class="chip">${data.ubs.length} ҮБС</span>` : ""}</div>
+            ${teacherHTML()}
             ${ubsResultsHTML()}
             ${ubsFormHTML()}
           </section>
@@ -842,6 +913,7 @@
       `;
       bind();
       startTicker();
+      syncTeacher();
     }
 
     function bind() {
@@ -851,12 +923,19 @@
         const name = app.querySelector("#profile-name").value.trim().replace(/\s+/g, " ");
         if (!name) return;
         profile.name = name;
+        profile.className = app.querySelector("#profile-class").value.trim().replace(/\s+/g, " ");
+        const share = app.querySelector("#profile-share");
+        if (share) profile.share = share.checked;
+        teacherStatus = null;
         saveProfile(profile);
         editingName = false;
         draw();
       });
       const nameEdit = app.querySelector("#name-edit");
       if (nameEdit) nameEdit.addEventListener("click", () => { editingName = true; draw(); app.querySelector("#profile-name").focus(); });
+
+      const retry = app.querySelector("#teacher-retry");
+      if (retry) retry.addEventListener("click", () => { teacherStatus = null; syncTeacher(); });
 
       app.querySelector("#ubs-form").addEventListener("submit", (e) => {
         e.preventDefault();
@@ -875,7 +954,7 @@
         if (!problem && !Object.keys(scores).length) problem = "Кемінде бір пәннің баллын жаз.";
         if (problem) { err.textContent = problem; err.hidden = false; return; }
         const date = app.querySelector(`#ubs-date-${examId}`).value || dayKey(new Date());
-        data.ubs.push({ date, scores });
+        data.ubs.push({ date, scores, sent: false });
         data.ubs.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0));
         saveTracker(examId, data);
         pendingDelete = null;
