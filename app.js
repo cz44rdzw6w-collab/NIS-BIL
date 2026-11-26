@@ -28,7 +28,12 @@
     const all = read(TRACKER_KEY, {});
     const t = all[examId] || {};
     // Емтихан күні тұрақты: тек data/tasks.js ішіндегі examDate алынады
-    return { date: EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [], ubs: t.ubs || [], week: t.week || {} };
+    return { date: EXAMS[examId].examDate, days: t.days || {}, todos: t.todos || [], ubs: t.ubs || [], week: trimWeek(t.week || {}) };
+  }
+  function trimWeek(week) {
+    const out = {};
+    Object.entries(week).forEach(([d, ids]) => { if (Array.isArray(ids) && ids.length) out[d] = ids.slice(0, MAX_PER_DAY); });
+    return out;
   }
   function saveTracker(examId, data) {
     const all = read(TRACKER_KEY, {});
@@ -396,6 +401,7 @@
   }
 
   /* ---------- ҮБС талдауы және мотивация ---------- */
+  const MAX_PER_DAY = 2; // күніне ең көбі 2 пән, артық жүктеме болмас үшін
   const DAY_NAMES = ["Дүйсенбі", "Сейсенбі", "Сәрсенбі", "Бейсенбі", "Жұма", "Сенбі", "Жексенбі"];
 
   // ҮБС жазбасынан пән бойынша пайыздарды есептейді: { subjectId: pct }
@@ -444,7 +450,6 @@
     let view = new Date(); view.setDate(1);
     let editingName = !profile.name;
     let pendingDelete = null;
-    let goalSubject = null;
     const todayIdx = (new Date().getDay() + 6) % 7;
     let openDay = todayIdx;
 
@@ -559,9 +564,9 @@
           <div class="curator-tip">
             <span aria-hidden="true">🤝</span>
             <div>
-              <strong>Кестеңді куратормен бірге құр</strong>
-              <p>ҮБС нәтижеңді куратормен қарап шығып, қай күні қай пәнге дайындалатыныңды бірге шешіңдер. Сосын төмендегі «Апталық кесте» бөлімінде белгіле.</p>
-              <button class="chip chip--btn" id="go-week">Кесте құру ↓</button>
+              <strong>Мақсатыңды куратормен бірге құр</strong>
+              <p>ҮБС нәтижеңді куратормен қарап шығып, қай күні қай пәнге дайындалатыныңды бірге шешіңдер. Сосын төмендегі «Мақсаттар» бөлімінде белгіле.</p>
+              <button class="chip chip--btn" id="go-week">Мақсат құру ↓</button>
             </div>
           </div>
         </section>`;
@@ -584,20 +589,26 @@
         const tags = picked.length
           ? picked.map((id) => { const s = subjectById(id); return s ? `<span class="day__tag">${s.icon} ${esc(s.title)}</span>` : ""; }).join("")
           : `<span class="day__none">Пән таңдалмаған</span>`;
+        const full = picked.length >= MAX_PER_DAY;
         const body = open ? `
           <div class="day__body" id="day-body-${i}">
-            ${subjects.map((s) => `
-              <label class="pick" for="pick-${examId}-${i}-${s.id}">
-                <input type="checkbox" id="pick-${examId}-${i}-${s.id}" data-pick="${i}:${s.id}" ${picked.includes(s.id) ? "checked" : ""}>
+            <p class="day__hint ${full ? "is-full" : ""}">${full ? `✓ ${MAX_PER_DAY} пән таңдалды. Басқа пәнді таңдау үшін біреуін алып таста.` : `Күніне ең көбі ${MAX_PER_DAY} пән таңда (${picked.length}/${MAX_PER_DAY})`}</p>
+            ${subjects.map((s) => {
+              const on = picked.includes(s.id);
+              const locked = full && !on;
+              return `
+              <label class="pick ${locked ? "is-locked" : ""}" for="pick-${examId}-${i}-${s.id}">
+                <input type="checkbox" id="pick-${examId}-${i}-${s.id}" data-pick="${i}:${s.id}" ${on ? "checked" : ""} ${locked ? "disabled" : ""}>
                 <span class="subject__icon ${s.color}">${s.icon}</span>
                 <span class="pick__title">${esc(s.title)}${s.id === weak ? ` <span class="tag">Назар аудар</span>` : ""}</span>
-              </label>`).join("")}
+              </label>`;
+            }).join("")}
           </div>` : "";
         return `
           <div class="day ${open ? "is-open" : ""} ${i === todayIdx ? "is-today" : ""}">
             <button class="day__head" data-open-day="${i}" aria-expanded="${open}" aria-controls="day-body-${i}">
               <span class="day__name">${name}${i === todayIdx ? " <em>бүгін</em>" : ""}</span>
-              <span class="day__count">${picked.length ? picked.length + " пән" : ""}</span>
+              <span class="day__count">${picked.length ? `${picked.length}/${MAX_PER_DAY}` : ""}</span>
               <span class="day__chev" aria-hidden="true">›</span>
             </button>
             ${open ? "" : `<div class="day__tags">${tags}</div>`}
@@ -606,8 +617,8 @@
       }).join("");
       return `
         <section class="card weekplan" id="weekplan">
-          <div class="card__title"><h3>Апталық кесте</h3>${total ? `<span class="chip">аптасына ${total} сабақ</span>` : ""}</div>
-          <p class="muted">Күнді бас та, сол күні дайындалатын пәндерді белгіле. Кестені куратормен ақылдасып құр.</p>
+          <div class="card__title"><h3>Мақсаттар</h3>${total ? `<span class="chip">аптасына ${total} сабақ</span>` : ""}</div>
+          <p class="muted">Аптаның әр күнін бас та, сол күні дайындалатын пәндерді белгіле: күніне ең көбі ${MAX_PER_DAY} пән. Мақсатыңды куратормен ақылдасып құр.</p>
           <div class="days">${days}</div>
         </section>`;
     }
@@ -649,23 +660,6 @@
         <div class="tstat"><b>${all.length}</b><span>күн барлығы</span></div>`;
     }
 
-    function todosHTML() {
-      if (!data.todos.length) return `<p class="empty">Әзірге мақсат жоқ. Куратормен ақылдасып, бірінші мақсатыңды жаз.</p>`;
-      return `<ul class="todos">${data.todos.map((t, i) => {
-        const subj = t.subject && subjectById(t.subject);
-        return `
-        <li class="${t.done ? "is-done" : ""}">
-          <label><input type="checkbox" data-todo="${i}" ${t.done ? "checked" : ""}>
-            <span class="todo__body">
-              ${subj || t.curator ? `<span class="todo__tags">${subj ? `<span class="todo__tag">${subj.icon} ${esc(subj.title)}</span>` : ""}${t.curator ? `<span class="todo__tag todo__tag--cur">✓ Куратормен келісілді</span>` : ""}</span>` : ""}
-              <span class="todo__text">${esc(t.text)}</span>
-            </span>
-          </label>
-          <button class="todo__del" data-del="${i}" aria-label="Өшіру">✕</button>
-        </li>`;
-      }).join("")}</ul>`;
-    }
-
     function subjectsHTML() {
       const progress = loadProgress();
       return firstStream.subjects.map((s) => {
@@ -683,13 +677,6 @@
     }
 
     function draw() {
-      const lastUbs = data.ubs[data.ubs.length - 1];
-      if (goalSubject === null && lastUbs) {
-        const cur = ubsPercents(lastUbs);
-        const r = subjects.filter((s) => cur[s.id] != null).sort((a, b) => cur[a.id] - cur[b.id]);
-        if (r.length) goalSubject = r[0].id;
-      }
-      const doneTodos = data.todos.filter((t) => t.done).length;
       app.innerHTML = `
         <div class="breadcrumbs"><a href="#home">Басты бет</a> / Трекер / ${esc(exam.title)}</div>
         <h1 class="page-title">Дайындық трекері</h1>
@@ -733,29 +720,12 @@
             <div class="cal">${calendarHTML()}</div>
           </section>
 
-          <section class="card goals" id="goals">
-            <div class="card__title"><h3>Мақсаттар</h3><span class="chip">${doneTodos}/${data.todos.length}</span></div>
-            <p class="muted">Мақсатты өзің құр, куратормен ақылдасып.</p>
-            <form class="goal-form" id="todo-form">
-              <select id="todo-subject-${examId}" aria-label="Пән">
-                <option value="">Жалпы мақсат</option>
-                ${subjects.map((s) => `<option value="${s.id}" ${s.id === goalSubject ? "selected" : ""}>${s.icon} ${esc(s.title)}</option>`).join("")}
-              </select>
-              <input type="text" id="todo-input-${examId}" placeholder="Мысалы: ҮБС-тағы қателерді талдау" maxlength="120" autocomplete="off">
-              <div class="goal-form__row">
-                <label class="check" for="todo-curator-${examId}"><input type="checkbox" id="todo-curator-${examId}"> Куратормен келісілді</label>
-                <button class="btn btn--olive" type="submit">Қосу</button>
-              </div>
-            </form>
-            ${todosHTML()}
+          <section class="card tracker-subjects">
+            <div class="card__title"><h3>Пәндер бойынша нәтиже</h3><a href="#${examId}" class="chip chip--link">Тапсырмаларға →</a></div>
+            <p class="muted">Әр пән бойынша тесттегі ең жақсы нәтижең.</p>
+            <div class="tsubj-list">${subjectsHTML()}</div>
           </section>
         </div>
-
-        <section class="card tracker-subjects">
-          <div class="card__title"><h3>Пәндер бойынша нәтиже</h3><a href="#${examId}" class="chip chip--link">Тапсырмаларға →</a></div>
-          <p class="muted">Әр пән бойынша тесттегі ең жақсы нәтижең.</p>
-          <div class="tsubj-list">${subjectsHTML()}</div>
-        </section>
       `;
       bind();
       startTicker();
@@ -818,6 +788,7 @@
       app.querySelectorAll("[data-pick]").forEach((c) => c.addEventListener("change", () => {
         const [day, id] = c.dataset.pick.split(":");
         const chosen = new Set(data.week[day] || []);
+        if (c.checked && chosen.size >= MAX_PER_DAY) { c.checked = false; return; }
         if (c.checked) chosen.add(id); else chosen.delete(id);
         data.week[day] = subjects.map((s) => s.id).filter((sid) => chosen.has(sid)); // пәндер ретін сақтаймыз
         if (!data.week[day].length) delete data.week[day];
@@ -839,29 +810,6 @@
       }));
       app.querySelectorAll("[data-cal]").forEach((b) => b.addEventListener("click", () => {
         view.setMonth(view.getMonth() + Number(b.dataset.cal));
-        draw();
-      }));
-      app.querySelector("#todo-form").addEventListener("submit", (e) => {
-        e.preventDefault();
-        const input = app.querySelector(`#todo-input-${examId}`);
-        const text = input.value.trim();
-        if (!text) return;
-        const subject = app.querySelector(`#todo-subject-${examId}`).value || null;
-        const curator = app.querySelector(`#todo-curator-${examId}`).checked;
-        goalSubject = subject || "";
-        data.todos.push({ text, done: false, subject, curator });
-        saveTracker(examId, data);
-        draw();
-        app.querySelector(`#todo-input-${examId}`).focus();
-      });
-      app.querySelectorAll("[data-todo]").forEach((c) => c.addEventListener("change", () => {
-        data.todos[Number(c.dataset.todo)].done = c.checked;
-        saveTracker(examId, data);
-        draw();
-      }));
-      app.querySelectorAll("[data-del]").forEach((b) => b.addEventListener("click", () => {
-        data.todos.splice(Number(b.dataset.del), 1);
-        saveTracker(examId, data);
         draw();
       }));
     }
